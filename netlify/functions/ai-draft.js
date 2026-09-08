@@ -14,35 +14,42 @@ export default async (req) => {
   if (!description) return bad("Describe the job first.");
   const update = !!b?.current;
 
-  let model;
+  let candidates;
   try {
-    model = await resolveModel(key);
+    candidates = await resolveModels(key);
   } catch (err) {
     return bad("Could not list Gemini models: " + err.message, 502);
   }
 
   const prompt = buildPrompt(description, b);
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-  let res;
-  try {
-    res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, responseMimeType: "application/json", maxOutputTokens: 8192 },
-      }),
-    });
-  } catch (err) {
-    return bad("Could not reach Gemini: " + err.message, 502);
-  }
-  if (!res.ok) {
+  let res = null, model = null, lastErr = null;
+  for (const m of candidates.slice(0, 3)) {
+    model = m;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`;
+    try {
+      res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": key },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, responseMimeType: "application/json", maxOutputTokens: 8192 },
+        }),
+      });
+    } catch (err) {
+      return bad("Could not reach Gemini: " + err.message, 502);
+    }
+    if (res.ok) break;
     const txt = await res.text();
     let detail = "";
     try { detail = JSON.parse(txt)?.error?.message || ""; } catch {}
-    console.error("gemini", model, res.status, txt.slice(0, 500));
-    if (res.status === 429) return bad("Gemini is busy - wait a minute and try again.", 502);
-    return bad(`Gemini error ${res.status} (${model})${detail ? ": " + detail.slice(0, 200) : ""}`, 502);
+    console.error("gemini", m, res.status, txt.slice(0, 300));
+    lastErr = { status: res.status, detail, model: m };
+    // busy / rate limited / not available for this key -> try the next model
+    if (res.status === 503 || res.status === 429 || res.status === 404) { res = null; continue; }
+    return bad(`Gemini error ${res.status} (${m})${detail ? ": " + detail.slice(0, 200) : ""}`, 502);
+  }
+  if (!res) {
+    return bad(lastErr && (lastErr.status === 503 || lastErr.status === 429) ? "Gemini is busy right now - try again in a minute." : `Gemini error ${lastErr?.status} (${lastErr?.model})`, 502);
   }
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
@@ -58,12 +65,12 @@ export default async (req) => {
   return json({ estimate: out, update, model });
 };
 
-// Pick a model: GEMINI_MODEL if set, otherwise the newest general-purpose "flash" model the key can use.
-let cachedModel = null;
-async function resolveModel(key) {
+// Rank models: GEMINI_MODEL if set, otherwise newest general-purpose "flash" models first; callers fall back down the list when one is busy.
+let cachedModels = null;
+async function resolveModels(key) {
   const forced = (process.env.GEMINI_MODEL || "").trim();
-  if (forced) return forced;
-  if (cachedModel) return cachedModel;
+  if (forced) return [forced];
+  if (cachedModels) return cachedModels;
   const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": key } });
   if (!res.ok) {
     let detail = "";
@@ -81,9 +88,9 @@ async function resolveModel(key) {
     return ver * 10 + (/flash/.test(n) ? 2 : /pro/.test(n) ? 1 : 0) + (/-latest$/.test(n) ? 0.5 : 0);
   };
   const ranked = names.map((n) => [score(n), n]).filter((r) => r[0] >= 0).sort((a, b) => b[0] - a[0]);
-  cachedModel = ranked.length ? ranked[0][1] : "gemini-2.5-flash";
-  console.log("gemini model resolved:", cachedModel, "from", names.length, "models");
-  return cachedModel;
+  cachedModels = ranked.length ? ranked.map((r) => r[1]) : ["gemini-2.5-flash"];
+  console.log("gemini models ranked:", cachedModels.slice(0, 3).join(", "), "from", names.length);
+  return cachedModels;
 }
 
 function buildPrompt(description, b) {
