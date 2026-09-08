@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Kotar Estimates</title>
+<link rel="icon" href="/kotar-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<!-- passcode gate (shown only when APP_PASSCODE is set) -->
+<div class="gate" id="gate" hidden>
+  <form id="gateForm">
+    <img src="/kotar-logo.png" alt="">
+    <h1>Kotar Estimates</h1>
+    <p>Enter the team passcode to continue.</p>
+    <input class="in" id="gatePass" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode" autofocus>
+    <div class="err" id="gateErr"></div>
+    <button class="btn primary lg" type="submit">Open</button>
+  </form>
+</div>
+
+<div id="shell" hidden>
+<div class="topbar">
+  <a class="brand" href="#/"><img src="/kotar-logo.png" alt=""><div><h1>Kotar Renovations</h1><span>Estimates</span></div></a>
+  <div class="tabs" role="tablist">
+    <button id="tabEstimates" data-nav="#/" role="tab">Estimates</button>
+    <button id="tabClients" data-nav="#/clients" role="tab">Clients</button>
+    <button id="tabLibrary" data-nav="#/library" role="tab">Scope Library</button>
+  </div>
+  <div class="grow"></div>
+  <div class="actions" id="topActions">
+    <button class="btn primary" id="btnNew"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New estimate</button>
+  </div>
+</div>
+
+<!-- ===== Dashboard ===== -->
+<section class="view" id="viewList" hidden>
+  <div class="view-head"><div><h2>Estimates</h2><p id="listSub">Everything you have quoted, newest first.</p></div></div>
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input class="in" id="listSearch" placeholder="Search client, project, number" aria-label="Search estimates"></div>
+    <div class="filters" id="listFilters">
+      <button data-f="all" class="on">All</button><button data-f="draft">Drafts</button><button data-f="sent">Sent</button><button data-f="viewed">Viewed</button><button data-f="approved">Approved</button><button data-f="changes">Needs attention</button>
+    </div>
+  </div>
+  <div class="table" id="listTable"></div>
+</section>
+
+<!-- ===== Clients ===== -->
+<section class="view" id="viewClients" hidden>
+  <div class="view-head"><div><h2>Clients</h2><p>Pick a client when you build an estimate; their details fill in automatically.</p></div>
+    <button class="btn primary" id="btnNewClient"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New client</button></div>
+  <div class="toolbar"><div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input class="in" id="clientSearch" placeholder="Search clients" aria-label="Search clients"></div></div>
+  <div class="cards" id="clientCards"></div>
+</section>
+
+<!-- ===== Scope Library ===== -->
+<section class="view" id="viewLibrary" hidden>
+  <div class="view-head"><div><h2>Scope Library</h2><p>The trade sections and standard lines you pick from when building an estimate. Edit them here once and every new estimate uses the new wording. Estimates you already made keep their own copy.</p></div>
+    <button class="btn primary" id="btnNewLib"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New scope section</button></div>
+  <div class="toolbar">
+    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input class="in" id="libSearch" placeholder="Search sections or lines" aria-label="Search library"></div>
+    <label class="check"><input type="checkbox" id="libShowHidden"> Show removed sections</label>
+    <span class="savestate" id="libState"></span>
+  </div>
+  <div id="libList"></div>
+</section>
+
+<!-- ===== Builder ===== -->
+<section class="view" id="viewBuilder" hidden>
+  <div class="builder-bar">
+    <div class="crumb"><a href="#/">Estimates</a><span>/</span><span id="crumbName">New estimate</span></div>
+    <span id="crumbStatus"></span>
+    <span class="savestate" id="saveState"></span>
+    <div class="grow"></div>
+    <button class="btn quiet" id="btnDup" title="Copy this estimate as a new draft"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>Duplicate</button>
+    <button class="btn quiet danger" id="btnDelete" title="Delete this estimate"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>
+    <span class="divider"></span>
+    <button class="btn" id="btnPdf"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>PDF</button>
+    <button class="btn primary" id="btnSend"><svg class="i" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Send to client</button>
+  </div>
+
+  <div class="app">
+    <div class="form-col">
+
+      <section class="card ai" id="aiCard">
+        <header><div class="t"><span class="num">AI</span><h2>Describe the job</h2></div><span class="hint">Type or talk; the estimate fills itself in</span></header>
+        <div class="body">
+          <textarea id="aiText" class="in" aria-label="Describe the job" placeholder="e.g. Debbie Thomson, 478 East 37th Street Hamilton. Full gut of the main bathroom. New shower with a niche and glass door, re-use the toilet in a new spot, new vanity, new fan, vanity light and a potlight. Resilient channel on the ceiling, full drywall. Tile the floor and shower. Casing, baseboard, paint. $18,440.39 plus HST."></textarea>
+          <div class="chips" aria-hidden="true"><span>Client &amp; address</span><span>Rooms &amp; how far it goes</span><span>New vs. re-used fixtures</span><span>Price: one total or per trade</span><span>Conditions</span></div>
+          <div class="ai-actions">
+            <button class="btn" id="btnMic" type="button" hidden><svg class="i" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg><span>Talk</span></button>
+            <label><input type="checkbox" id="aiUpdate"> Apply as changes to this estimate</label>
+            <span class="spacer"></span>
+            <button class="btn primary" id="btnAi" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9z"/></svg>Draft the estimate</button>
+          </div>
+          <div class="ai-status" id="aiStatus"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header><div class="t"><span class="num">1</span><h2>Client</h2></div><span class="hint">Who this estimate is for</span></header>
+        <div class="body">
+          <div class="clientpick">
+            <select class="in" id="clientSelect" aria-label="Choose a client"></select>
+            <button class="btn sm" id="btnClientNew" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New</button>
+          </div>
+          <div id="clientCard"></div>
+          <div class="grid2">
+            <div class="field"><label for="eDate">Estimate date</label><input id="eDate" class="in" data-k="date" type="date"></div>
+            <div class="field"><label for="eNum">Estimate number</label><input id="eNum" class="in" data-k="number" placeholder="Auto"></div>
+            <div class="field span"><label for="eTitle">Project title <em>(optional)</em></label><input id="eTitle" class="in" data-k="project" placeholder="e.g. Main bathroom renovation"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header><div class="t"><span class="num">2</span><h2>Scope of Work</h2></div>
+          <button class="btn soft sm" id="btnAddScope" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add scope</button></header>
+        <div class="body">
+          <div class="sections" id="sections"></div>
+          <div class="addbar">
+            <button class="btn sm" id="btnAddScope2" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add scope of work</button>
+            <button class="btn sm quiet" id="btnNewSecInline" type="button">New one-off section</button>
+            <span class="note">Enter adds a line. End a line with a colon to make it a sub-heading.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header><div class="t"><span class="num">3</span><h2>Pricing</h2></div>
+          <div class="seg" role="group" aria-label="Pricing style"><button id="modeLump" type="button">Single total</button><button id="modeSection" type="button">Price by section</button></div></header>
+        <div class="body">
+          <div class="inline" id="lumpRow">
+            <div class="field"><label for="lump">Sub-total (before HST)</label><div class="money-wrap"><input id="lump" class="in" inputmode="decimal" placeholder="0.00"></div></div>
+            <div class="field narrow"><label for="tax">HST %</label><input id="tax" class="in" inputmode="decimal" data-k="taxRate"></div>
+          </div>
+          <div class="inline" id="secRow" hidden>
+            <p class="note" style="flex:1">Sub-total adds up the amounts beside each section above.</p>
+            <div class="field narrow"><label for="tax2">HST %</label><input id="tax2" class="in" inputmode="decimal" data-k="taxRate"></div>
+          </div>
+          <div class="totals">
+            <div class="lab">Sub-total</div><div class="val" id="tSub">$0.00</div>
+            <div class="lab" id="tTaxLab">HST (13%)</div><div class="val" id="tTax">$0.00</div>
+            <div class="grand lab">Total</div><div class="val grand" id="tTot">$0.00</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header><div class="t"><span class="num">4</span><h2>Notes &amp; Conditions</h2></div><span class="hint">One per line, printed at the bottom</span></header>
+        <div class="body"><div class="field"><textarea id="notes" class="in" rows="4" data-k="notesText" aria-label="Notes and conditions"></textarea></div></div>
+      </section>
+
+      <section class="card" id="statusCard">
+        <header><div class="t"><span class="num">5</span><h2>Client approval</h2></div><span class="hint" id="statusHint"></span></header>
+        <div class="body" id="statusBody"></div>
+      </section>
+
+    </div>
+
+    <div class="preview-col">
+      <div class="preview-head"><span>Preview: what your client receives</span><span id="pageHint"></span></div>
+      <div class="paper-wrap"><div class="paper" id="paper"></div></div>
+    </div>
+  </div>
+</section>
+</div>
+
+<div id="modalHost"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/common.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

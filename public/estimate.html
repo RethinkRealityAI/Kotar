@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your estimate from Kotar Renovations</title>
+<link rel="icon" href="/kotar-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="cpage" id="page">
+  <div class="hello" id="hello" hidden>
+    <img src="/kotar-logo.png" alt="Kotar Renovations">
+    <div class="grow"><h1 id="helloTitle">Your estimate</h1><p id="helloSub"></p></div>
+    <button class="btn" id="btnPdf"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download PDF</button>
+  </div>
+  <div class="paper-wrap"><div class="paper" id="paper" hidden></div></div>
+  <div class="approve" id="approve" hidden></div>
+  <div class="notfound" id="notfound" hidden><b>This estimate link is no longer available</b>It may have been replaced with a newer link. Please contact Kotar Renovations at 289-237-9622 or info@kotarrenovationsinc.ca.</div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/common.js"></script>
+<script src="/client.js"></script>
+</body>
+</html>
