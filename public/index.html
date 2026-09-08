@@ -30,6 +30,7 @@
   <a class="brand" href="#/"><img src="/kotar-logo.png" alt=""><div><h1>Kotar Renovations</h1><span>Estimates</span></div></a>
   <div class="tabs" role="tablist">
     <button id="tabEstimates" data-nav="#/" role="tab">Estimates</button>
+    <button id="tabReview" data-nav="#/review" role="tab">Review<span class="badge" id="reviewBadge" hidden>0</span></button>
     <button id="tabClients" data-nav="#/clients" role="tab">Clients</button>
     <button id="tabLibrary" data-nav="#/library" role="tab">Scope Library</button>
   </div>
@@ -50,6 +51,14 @@
     </div>
   </div>
   <div class="table" id="listTable"></div>
+</section>
+
+<!-- ===== Review ===== -->
+<section class="view" id="viewReview" hidden>
+  <div class="view-head"><div><h2>Client review</h2><p>Comments and change requests from clients, with the line they refer to. Tick a comment once you have dealt with it, then generate a fresh link so the client can approve the updated estimate.</p></div></div>
+  <div class="stats" id="reviewStats"></div>
+  <div class="toolbar"><div class="filters" id="reviewFilters"><button data-f="open" class="on">Needs attention</button><button data-f="all">All feedback</button></div></div>
+  <div class="rcards" id="reviewCards"></div>
 </section>
 
 <!-- ===== Clients ===== -->
@@ -83,7 +92,7 @@
     <button class="btn quiet danger" id="btnDelete" title="Delete this estimate"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>
     <span class="divider"></span>
     <button class="btn" id="btnPdf"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>PDF</button>
-    <button class="btn primary" id="btnSend"><svg class="i" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Send to client</button>
+    <button class="btn primary" id="btnSend"><svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span id="btnSendLabel">Generate client link</span></button>
   </div>
 
   <div class="app">
@@ -159,7 +168,7 @@
       </section>
 
       <section class="card" id="statusCard">
-        <header><div class="t"><span class="num">5</span><h2>Client approval</h2></div><span class="hint" id="statusHint"></span></header>
+        <header><div class="t"><span class="num">5</span><h2>Client link &amp; approval</h2></div><span class="hint" id="statusHint"></span></header>
         <div class="body" id="statusBody"></div>
       </section>
 

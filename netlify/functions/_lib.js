@@ -94,10 +94,35 @@ export function normalizeEstimate(e, existing) {
     notesText: clean(e.notesText, 4000),
     status: existing?.status || "draft",
     share: existing?.share || null,
+    // Client feedback is written only by the share function; the owner may just flip "resolved".
+    review: mergeReview(existing?.review || null, e.review),
+    reviewHistory: existing?.reviewHistory || [],
     createdAt: existing?.createdAt || now(),
     updatedAt: now(),
   };
   return out;
+}
+
+export function mergeReview(current, incoming) {
+  if (!current) return null;
+  if (!incoming || !Array.isArray(incoming.comments)) return current;
+  const byId = {};
+  incoming.comments.forEach((c) => { if (c && c.id) byId[c.id] = !!c.resolved; });
+  return { ...current, comments: (current.comments || []).map((c) => (c.id in byId ? { ...c, resolved: byId[c.id], resolvedAt: byId[c.id] ? (c.resolvedAt || now()) : null } : c)) };
+}
+
+// Sanitize a client review submission (line comments + general note).
+export function cleanReview(b) {
+  const comments = (Array.isArray(b.comments) ? b.comments : []).slice(0, 60).map((c) => ({
+    id: clean(c.id, 20) || uid(8),
+    sectionId: clean(c.sectionId, 20),
+    sectionTitle: clean(c.sectionTitle, 80),
+    idx: Number.isInteger(+c.idx) ? +c.idx : -1,
+    itemText: clean(c.itemText, 300),
+    text: clean(c.text, 1000),
+    resolved: false,
+  })).filter((c) => c.text);
+  return { comments, note: clean(b.note, 2000), submittedAt: now(), withApproval: !!b.withApproval };
 }
 
 export const round2 = (n) => Math.round((+n + Number.EPSILON) * 100) / 100;

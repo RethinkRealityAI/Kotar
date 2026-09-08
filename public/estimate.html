@@ -11,17 +11,28 @@
 <link rel="stylesheet" href="/styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body>
-<div class="cpage" id="page">
-  <div class="hello" id="hello" hidden>
-    <img src="/kotar-logo.png" alt="Kotar Renovations">
-    <div class="grow"><h1 id="helloTitle">Your estimate</h1><p id="helloSub"></p></div>
-    <button class="btn" id="btnPdf"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download PDF</button>
-  </div>
-  <div class="paper-wrap"><div class="paper" id="paper" hidden></div></div>
-  <div class="approve" id="approve" hidden></div>
-  <div class="notfound" id="notfound" hidden><b>This estimate link is no longer available</b>It may have been replaced with a newer link. Please contact Kotar Renovations at 289-237-9622 or info@kotarrenovationsinc.ca.</div>
+<body class="clientpage">
+<div class="ctop" id="hello" hidden>
+  <a class="brand" id="portalLink" href="#"><img src="/kotar-logo.png" alt="Kotar Renovations"><div><h1>Kotar Renovations</h1><span>Your estimate</span></div></a>
+  <div class="grow"></div>
+  <a class="btn quiet" id="btnPortal" href="#" hidden><svg class="i" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>All your estimates</a>
+  <button class="btn" id="btnPdf"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download PDF</button>
 </div>
+
+<div class="cwrap" id="page" hidden>
+  <aside class="cside">
+    <div class="intro"><h2 id="helloTitle">Your estimate</h2><p id="helloSub"></p></div>
+    <section class="approve" id="approve"></section>
+    <section class="ccomments" id="comments"></section>
+  </aside>
+  <main class="cmain">
+    <div class="cm-hint" id="cmHint">Hover a line and press <b>Comment</b> to ask about it or request a change. Your comments collect on the left.</div>
+    <div class="paper-wrap"><div class="paper" id="paper"></div></div>
+  </main>
+</div>
+
+<div class="notfound" id="notfound" hidden><b>This estimate link is no longer available</b>It may have been replaced with a newer link. Please contact Kotar Renovations at 289-237-9622 or info@kotarrenovationsinc.ca.</div>
+<div id="modalHost"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/common.js"></script>
 <script src="/client.js"></script>

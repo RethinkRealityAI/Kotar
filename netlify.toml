@@ -11,6 +11,12 @@
   to = "/estimate.html"
   status = 200
 
+# Client portal: /c/<token> lists every estimate sent to that client
+[[redirects]]
+  from = "/c/*"
+  to = "/portal.html"
+  status = 200
+
 # Friendly API paths -> functions
 [[redirects]]
   from = "/api/*"

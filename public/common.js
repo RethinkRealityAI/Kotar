@@ -154,10 +154,25 @@ window.Kotar = (function () {
     changed: { label: "Edited after approval", cls: "s-changes" }
   };
   function statusPill(st) { var s = STATUS[st] || STATUS.draft; return '<span class="pill ' + s.cls + '">' + s.label + "</span>"; }
+  /* How the client sees the same statuses */
+  var CLIENT_STATUS = {
+    sent: { label: "Awaiting your approval", cls: "s-viewed" },
+    viewed: { label: "Awaiting your approval", cls: "s-viewed" },
+    approved: { label: "Approved", cls: "s-approved" },
+    changes: { label: "You requested changes", cls: "s-changes" },
+    changed: { label: "Being updated by Kotar", cls: "s-sent" }
+  };
+  function clientStatusPill(st) { var s = CLIENT_STATUS[st] || CLIENT_STATUS.sent; return '<span class="pill ' + s.cls + '">' + s.label + "</span>"; }
 
-  /* ---------- paper preview (shared by app + client page) ---------- */
-  function paperHTML(est, co) {
-    co = co || COMPANY;
+  /* ---------- paper preview (shared by app + client page) ----------
+     opts.comments: array of {sectionId, idx, itemText, text} to render as callouts under lines (client page). */
+  function commentFor(comments, s, idx, text) {
+    if (!comments) return null;
+    for (var i = 0; i < comments.length; i++) { var c = comments[i]; if (c.sectionId === s.id && (c.idx === idx || (c.itemText && c.itemText === text))) return c; }
+    return null;
+  }
+  function paperHTML(est, co, opts) {
+    co = co || COMPANY; opts = opts || {};
     var t = totals(est), perSec = est.pricingMode === "section";
     var coMeta = [co.contact, co.address, co.phone, co.email, co.hst ? "GST/HST " + co.hst : ""].filter(Boolean).map(esc).join("<br>");
     var clientLines = [est.client.address, est.client.email, est.client.phone].filter(Boolean).map(esc).join("\n");
@@ -169,9 +184,17 @@ window.Kotar = (function () {
     var secs = activeSections(est);
     if (!secs.length) html += '<p class="empty">No scope added yet.</p>';
     secs.forEach(function (s) {
-      var items = s.items.map(function (x) { return x.trim(); }).filter(Boolean);
-      html += '<div class="psec"><div class="st"><h3>' + esc(s.title) + "</h3>" + (perSec ? '<span class="amt">' + money(s.amount) + "</span>" : "") + "</div>";
-      if (items.length) html += "<ul>" + items.map(function (x) { return /:$/.test(x) ? '<li class="sub">' + esc(x) + "</li>" : "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+      html += '<div class="psec" data-sid="' + esc(s.id) + '"><div class="st"><h3>' + esc(s.title) + "</h3>" + (perSec ? '<span class="amt">' + money(s.amount) + "</span>" : "") + "</div>";
+      var lis = "";
+      s.items.forEach(function (raw, idx) {
+        var x = raw.trim(); if (!x) return;
+        var c = commentFor(opts.comments, s, idx, x);
+        var cls = (/:$/.test(x) ? "sub" : "") + (opts.commentable ? " cm" : "") + (c ? " has-c" : "");
+        lis += '<li class="' + cls.trim() + '" data-sid="' + esc(s.id) + '" data-idx="' + idx + '"><span class="lt">' + esc(x) + "</span>" +
+          (opts.commentable ? '<button type="button" class="cbtn" data-c="' + esc(s.id) + ":" + idx + '" title="' + (c ? "Edit your comment" : "Comment on this line") + '" aria-label="Comment on this line">' + (c ? "Edit comment" : "Comment") + "</button>" : "") +
+          (c ? '<div class="lc"><b>' + esc(opts.commentLabel || "Your comment") + "</b>" + esc(c.text) + "</div>" : "") + "</li>";
+      });
+      if (lis) html += "<ul>" + lis + "</ul>";
       html += "</div>";
     });
     html += '<div class="ptotals"><div><span>Sub-total</span><span>' + money(t.sub) + "</span></div><div><span>HST (" + (+est.taxRate || 0) + "%)</span><span>" + money(t.tax) + '</span></div><div class="grand"><span>Total</span><span>' + money(t.total) + "</span></div></div>";
@@ -265,7 +288,7 @@ window.Kotar = (function () {
   }
 
   return { COMPANY: COMPANY, CATS: CATS, LIB: LIB, BY_KEY: BY_KEY, DEFAULT_BY_KEY: DEFAULT_BY_KEY, TEMPLATES: TEMPLATES, STANDARD_NOTES: STANDARD_NOTES, STATUS: STATUS,
-    applyLibrary: applyLibrary, libraryConfig: libraryConfig, visibleLib: visibleLib, differsFromLibrary: differsFromLibrary,
+    applyLibrary: applyLibrary, libraryConfig: libraryConfig, visibleLib: visibleLib, differsFromLibrary: differsFromLibrary, clientStatusPill: clientStatusPill, CLIENT_STATUS: CLIENT_STATUS,
     uid: uid, todayISO: todayISO, round2: round2, money: money, parseMoney: parseMoney, longDate: longDate, whenText: whenText, esc: esc,
     sectionsFromTemplate: sectionsFromTemplate, newEstimate: newEstimate, normalize: normalize, insertSection: insertSection, totals: totals, activeSections: activeSections, notesList: notesList, fileBase: fileBase,
     statusPill: statusPill, paperHTML: paperHTML, buildPDF: buildPDF, downloadPDF: downloadPDF, loadLogo: loadLogo };

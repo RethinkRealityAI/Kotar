@@ -79,17 +79,21 @@
   document.querySelectorAll("[data-nav]").forEach(function (b) { b.onclick = function () { nav(b.dataset.nav); }; });
   function route() {
     var h = location.hash || "#/";
-    var isClients = h.indexOf("#/clients") === 0, isLib = h.indexOf("#/library") === 0, isEst = h.indexOf("#/estimate/") === 0, isNew = h.indexOf("#/new") === 0;
+    var isClients = h.indexOf("#/clients") === 0, isLib = h.indexOf("#/library") === 0, isReview = h.indexOf("#/review") === 0, isEst = h.indexOf("#/estimate/") === 0, isNew = h.indexOf("#/new") === 0;
     if (state.dirty && state.est && !isEst) flushSave();
-    $("viewList").hidden = !(!isClients && !isLib && !isEst && !isNew);
+    $("viewList").hidden = !(!isClients && !isLib && !isReview && !isEst && !isNew);
     $("viewClients").hidden = !isClients;
     $("viewLibrary").hidden = !isLib;
+    $("viewReview").hidden = !isReview;
     $("viewBuilder").hidden = !(isEst || isNew);
-    $("tabEstimates").classList.toggle("on", !isClients && !isLib);
+    $("tabEstimates").classList.toggle("on", !isClients && !isLib && !isReview);
     $("tabClients").classList.toggle("on", isClients);
     $("tabLibrary").classList.toggle("on", isLib);
+    $("tabReview").classList.toggle("on", isReview);
+    updateReviewBadge();
     if (isClients) renderClients();
     else if (isLib) renderLibrary();
+    else if (isReview) renderReview();
     else if (isEst) openEstimate(h.slice("#/estimate/".length));
     else if (!isNew) renderList();
     window.scrollTo(0, 0);
@@ -107,6 +111,17 @@
     ov.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = close; });
     document.addEventListener("keydown", onKey);
     return { el: ov.firstElementChild, close: close };
+  }
+  /* In-app confirmation (never the browser's confirm()). Resolves true/false. */
+  function ask(o) {
+    return new Promise(function (resolve) {
+      var m = openModal('<header><h2>' + esc(o.title || "Are you sure?") + "</h2>" + ICON.close + '</header><div class="form"><p>' + esc(o.body || "") + "</p>" + (o.sub ? '<p class="sub">' + esc(o.sub) + "</p>" : "") + "</div>" +
+        '<footer><span class="spacer"></span><button class="btn quiet" type="button" data-close>' + esc(o.cancelText || "Cancel") + '</button><button class="btn ' + (o.danger ? "primary" : "primary") + '" type="button" id="askOk">' + esc(o.okText || "Continue") + "</button></footer>", { narrow: true, onClose: function () { resolve(false); } });
+      m.el.classList.add("confirm");
+      var ok = m.el.querySelector("#askOk"); if (o.danger) { ok.style.background = "var(--danger)"; ok.style.borderColor = "var(--danger)"; }
+      ok.onclick = function () { resolve(true); m.close(); };
+      setTimeout(function () { ok.focus(); }, 30);
+    });
   }
 
   /* ---------- line editor (shared) ----------
@@ -133,6 +148,7 @@
         });
         row.querySelector('[data-a="add"]').onclick = function () { items.splice(i + 1, 0, ""); onChange(); draw(i + 1); };
         row.querySelector('[data-a="del"]').onclick = function () { items.splice(i, 1); onChange(); draw(Math.min(i, items.length - 1), true); };
+        if (opts.decorate) opts.decorate(row, i, v);
         wrap.appendChild(row);
       });
       var add = document.createElement("button"); add.type = "button"; add.className = "addline"; add.innerHTML = ICON.plus + (opts.addLabel || "Add line");
@@ -174,12 +190,14 @@
   }
   function deleteEstimate(id) {
     var e = state.estimates.filter(function (x) { return x.id === id; })[0];
-    if (!e || !confirm("Delete the estimate for " + (e.client.name || "this client") + "? The client link will stop working. This cannot be undone.")) return;
+    if (!e) return;
+    ask({ title: "Delete this estimate?", body: "The estimate for " + (e.client.name || "this client") + " will be removed and its client link will stop working.", sub: "This cannot be undone.", okText: "Delete", danger: true }).then(function (yes) { if (!yes) return;
     api("estimates?id=" + encodeURIComponent(id), { method: "DELETE" }).then(function () {
       state.estimates = state.estimates.filter(function (x) { return x.id !== id; });
       if (state.est && state.est.id === id) { state.est = null; state.dirty = false; }
       toast("Deleted"); nav("#/");
     }).catch(function (er) { toast(er.message); });
+    });
   }
 
   /* ---------- clients ---------- */
@@ -218,8 +236,9 @@
     };
     var del = m.el.querySelector("#clientDel");
     if (del) del.onclick = function () {
-      if (!confirm("Delete " + c.name + "? Existing estimates keep their copy of the details.")) return;
-      api("clients?id=" + encodeURIComponent(c.id), { method: "DELETE" }).then(function () { state.clients = state.clients.filter(function (x) { return x.id !== c.id; }); m.close(); toast("Client deleted"); if (done) done(null); }).catch(function (er) { toast(er.message); });
+      ask({ title: "Delete " + c.name + "?", body: "Existing estimates keep their copy of the client details. Their portal link will stop working.", okText: "Delete client", danger: true }).then(function (yes) { if (!yes) return;
+        api("clients?id=" + encodeURIComponent(c.id), { method: "DELETE" }).then(function () { state.clients = state.clients.filter(function (x) { return x.id !== c.id; }); m.close(); toast("Client deleted"); if (done) done(null); }).catch(function (er) { toast(er.message); });
+      });
     };
     setTimeout(function () { form.querySelector("[name=name]").focus(); }, 30);
   }
@@ -273,11 +292,11 @@
       saveLibrary(cfg, "Saved " + entry.t + " to the library");
     };
     revertBtn.onclick = function () { renderLibrary(); };
-    var reset = card.querySelector('[data-a="reset"]'); if (reset) reset.onclick = function () { if (!confirm("Reset " + l.t + " to Kotar's original wording?")) return; var cfg = K.libraryConfig(); delete cfg.overrides[l.k]; saveLibrary(cfg, "Reset to default"); };
+    var reset = card.querySelector('[data-a="reset"]'); if (reset) reset.onclick = function () { ask({ title: "Reset " + l.t + "?", body: "This puts back Kotar's original wording for this section.", okText: "Reset to default" }).then(function (yes) { if (!yes) return; var cfg = K.libraryConfig(); delete cfg.overrides[l.k]; saveLibrary(cfg, "Reset to default"); }); };
     var remove = card.querySelector('[data-a="remove"]'); if (remove) remove.onclick = function () {
       var cfg = K.libraryConfig();
       if (l.builtin) { if (cfg.hidden.indexOf(l.k) < 0) cfg.hidden.push(l.k); saveLibrary(cfg, "Removed from the picker. Tick Show removed sections to restore it."); }
-      else { if (!confirm("Delete " + l.t + " from the library? Estimates that already use it are not affected.")) return; cfg.custom = cfg.custom.filter(function (x) { return x.k !== l.k; }); cfg.hidden = cfg.hidden.filter(function (k) { return k !== l.k; }); saveLibrary(cfg, "Deleted " + l.t); }
+      else { ask({ title: "Delete " + l.t + " from the library?", body: "Estimates that already use this section are not affected.", okText: "Delete", danger: true }).then(function (yes) { if (!yes) return; cfg.custom = cfg.custom.filter(function (x) { return x.k !== l.k; }); cfg.hidden = cfg.hidden.filter(function (k) { return k !== l.k; }); saveLibrary(cfg, "Deleted " + l.t); }); }
     };
     var restore = card.querySelector('[data-a="restore"]'); if (restore) restore.onclick = function () { var cfg = K.libraryConfig(); cfg.hidden = cfg.hidden.filter(function (k) { return k !== l.k; }); saveLibrary(cfg, "Restored " + l.t); };
     return card;
@@ -364,7 +383,7 @@
     return api("estimates", { method: "POST", body: e }).then(function (saved) {
       state.saving = false; state.dirty = false;
       var merged = K.normalize(saved); merged.sections.forEach(function (s, i) { if (e.sections[i]) s.id = e.sections[i].id; });
-      if (state.est === e) { e.status = merged.status; e.share = merged.share; e.updatedAt = merged.updatedAt; e.createdAt = merged.createdAt; }
+      if (state.est === e) { e.status = merged.status; e.share = merged.share; e.review = merged.review || null; e.reviewHistory = merged.reviewHistory || []; e.updatedAt = merged.updatedAt; e.createdAt = merged.createdAt; }
       replaceLocal(state.est === e ? e : merged); setSaveState("Saved " + K.whenText(merged.updatedAt).split(" ").slice(-2).join(" ")); renderStatus(); updateCrumb();
     }).catch(function (er) { state.saving = false; setSaveState("Not saved: " + er.message); if (er.message !== "unauthorized") toast("Could not save: " + er.message); });
   }
@@ -418,8 +437,13 @@
     if (!c.name) { $("clientCard").innerHTML = '<p class="note">No client on this estimate yet. Choose one above, or describe the job and the client details fill in.</p>'; return; }
     var initials = c.name.split(/\s+/).map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase();
     var linked = !!sel.value;
-    $("clientCard").innerHTML = '<div class="clientcard"><div class="av">' + esc(initials) + '</div><div class="who"><b>' + esc(c.name) + "</b>" + [c.address, c.email, c.phone].filter(Boolean).map(function (x) { return "<span>" + esc(x) + "</span>"; }).join("") + "</div>" +
+    var rec = linked ? state.clients.filter(function (x) { return x.id === e.clientId; })[0] : null;
+    var portal = rec && rec.portalToken ? location.origin + "/c/" + rec.portalToken : "";
+    $("clientCard").innerHTML = '<div class="clientcard"><div class="av">' + esc(initials) + '</div><div class="who"><b>' + esc(c.name) + "</b>" + [c.address, c.email, c.phone].filter(Boolean).map(function (x) { return "<span>" + esc(x) + "</span>"; }).join("") +
+      (linked ? '<span class="portalrow">' + (portal ? '<a href="' + esc(portal) + '" target="_blank" rel="noopener">Client portal</a> <button type="button" class="linkbtn" id="btnPortalCopy">Copy link</button>' : '<button type="button" class="linkbtn" id="btnPortalMake">Create client portal link</button>') + "</span>" : "") + "</div>" +
       (linked ? '<button class="btn sm quiet" type="button" id="btnClientEdit">Edit</button>' : '<button class="btn sm soft" type="button" id="btnClientSave" title="Save these details as a client you can reuse">Save as client</button>') + "</div>";
+    var pc = $("btnPortalCopy"); if (pc) pc.onclick = function () { copyText(portal); };
+    var pm = $("btnPortalMake"); if (pm) pm.onclick = function () { api("share", { method: "POST", body: { clientId: e.clientId, portal: true } }).then(function (r) { rec.portalToken = r.token; renderClientPicker(); copyText(r.url); }).catch(function (er) { toast(er.message); }); };
     var ed = $("btnClientEdit"); if (ed) ed.onclick = function () { var cc = state.clients.filter(function (x) { return x.id === e.clientId; })[0]; openClientModal(cc, function (saved) { if (saved) applyClient(saved); }); };
     var sv = $("btnClientSave"); if (sv) sv.onclick = function () { api("clients", { method: "POST", body: c }).then(function (saved) { upsertClientLocal(saved); applyClient(saved); toast("Saved " + saved.name + " to clients"); }).catch(function (er) { toast(er.message); }); };
   }
@@ -450,12 +474,20 @@
           if (!s.title.trim()) { toast("Give the section a name first."); d.querySelector(".title").focus(); return; }
           openSaveToLibraryModal(s, function (key) { s.key = key; changed(); renderSections(); });
         };
-        var ul = foot.querySelector('[data-act="updlib"]'); if (ul) ul.onclick = function () { if (!confirm("Update the library version of " + lib.t + " to match these lines? Future estimates will use the new wording.")) return; updateLibraryFromSection(s).then(function () { lib = K.BY_KEY[s.key]; refreshFoot(); }); };
+        var ul = foot.querySelector('[data-act="updlib"]'); if (ul) ul.onclick = function () { ask({ title: "Update the library?", body: "The library version of " + lib.t + " will match these lines. Future estimates use the new wording; existing ones are not changed.", okText: "Update library" }).then(function (yes) { if (!yes) return; updateLibraryFromSection(s).then(function () { lib = K.BY_KEY[s.key]; refreshFoot(); }); }); };
         var fl = foot.querySelector('[data-act="fromlib"]'); if (fl) fl.onclick = function () { s.items.length = 0; lib.i.forEach(function (x) { s.items.push(x); }); s.title = lib.t; d.querySelector(".title").value = lib.t; editor.redraw(); changed(); refreshFoot(); };
       }
       var title = d.querySelector(".title"); title.oninput = function () { s.title = title.value; changed(); refreshFoot(); };
       var amt = d.querySelector(".amt input"); if (amt) { amt.oninput = function () { s.amount = K.parseMoney(amt.value); changed(); }; amt.onblur = function () { if (amt.value) amt.value = s.amount.toFixed(2); }; }
-      var editor = lineEditor(d.querySelector(".items"), s.items, function () { changed(); refreshFoot(); }, { emptyText: "No lines yet. Add one below." });
+      var cmts = ((e.review && e.review.comments) || []).filter(function (c) { return c.sectionId === s.id; });
+      var editor = lineEditor(d.querySelector(".items"), s.items, function () { changed(); refreshFoot(); }, { emptyText: "No lines yet. Add one below.", decorate: function (row, idx, val) {
+        var c = null; for (var k = 0; k < cmts.length; k++) { if (cmts[k].idx === idx || (cmts[k].itemText && cmts[k].itemText === val.trim())) { c = cmts[k]; break; } }
+        if (!c) return;
+        var el = document.createElement("div"); el.className = "ccall" + (c.resolved ? " done" : "");
+        el.innerHTML = '<div class="txt"><b>' + (c.resolved ? "Client comment - resolved" : "Client comment") + "</b>" + esc(c.text) + '</div><button type="button" class="btn sm ' + (c.resolved ? "quiet" : "soft") + '">' + (c.resolved ? "Reopen" : "Resolve") + "</button>";
+        el.querySelector("button").onclick = function () { c.resolved = !c.resolved; saveReview(e); };
+        row.appendChild(el);
+      } });
       d.querySelectorAll(".row [data-act]").forEach(function (b) { b.onclick = function () {
         var idx = e.sections.indexOf(s);
         if (b.dataset.act === "del") { e.sections.splice(idx, 1); renderSections(); changed(); toast("Removed " + (s.title || "section")); return; }
@@ -546,49 +578,101 @@
     $("paper").innerHTML = K.paperHTML(e);
   }
 
-  /* ---------- status / send to client ---------- */
+  /* ---------- client link, approval status, review ---------- */
+  function openComments(e) { return ((e.review && e.review.comments) || []).filter(function (c) { return !c.resolved; }); }
+  function hasFeedback(e) { return !!(e.review && ((e.review.comments && e.review.comments.length) || e.review.note)); }
+  function updateReviewBadge() {
+    var n = state.estimates.filter(function (e) { return hasFeedback(e) && (openComments(e).length || (e.status === "changes" && !e.review.comments.length)); }).length;
+    var b = $("reviewBadge"); b.textContent = n; b.hidden = !n;
+  }
   function renderStatus() {
     var e = state.est; if (!e) return; var sh = e.share || {};
     var url = sh.token ? location.origin + "/e/" + sh.token : "";
-    var hint = { draft: "Not sent yet", sent: "Waiting for the client to open it", viewed: "Client has opened it", approved: "Approved", changes: "Client asked for changes", changed: "Edited since approval - send again" }[e.status] || "";
+    $("btnSendLabel").textContent = sh.token ? "Copy client link" : "Generate client link";
+    var hint = { draft: "No client link yet", sent: "Waiting for the client to open it", viewed: "Client has opened it", approved: "Approved", changes: "Client asked for changes", changed: "Edited since approval - generate a new link" }[e.status] || "";
     $("statusHint").textContent = hint;
     var steps = [
-      { k: "sent", label: "Sent to client", when: sh.sentAt, done: !!sh.sentAt },
+      { k: "sent", label: "Link generated", when: sh.sentAt, done: !!sh.sentAt },
       { k: "viewed", label: "Opened by client", when: sh.viewedAt, done: !!sh.viewedAt },
-      e.status === "changes" ? { k: "changes", label: "Changes requested", when: sh.changesAt, done: true, hot: true, note: sh.changesNote } : { k: "approved", label: "Approved" + (sh.approvedBy ? " by " + sh.approvedBy : ""), when: sh.approvedAt, done: !!sh.approvedAt, note: sh.approvedNote }
+      e.status === "changes" ? { k: "changes", label: "Changes requested", when: sh.changesAt, done: true, hot: true } : { k: "approved", label: "Approved" + (sh.approvedBy ? " by " + sh.approvedBy : ""), when: sh.approvedAt, done: !!sh.approvedAt, note: sh.approvedNote }
     ];
     var html = "";
-    if (!sh.token) html += '<p class="note">Press <b>Send to client</b> to create a private link. The client can review the estimate, download the PDF, and approve it with a typed signature, or ask for changes. You will see each step here.</p>';
+    if (!sh.token) html += '<p class="note">Press <b>Generate client link</b> to create a private page for this client. They can review every line, leave comments, download the PDF, and approve with a typed name. Nothing is emailed automatically; you send the link however you like.</p>';
     else {
       html += '<div class="timeline">' + steps.map(function (s) { return '<div class="tl' + (s.done ? " done" : "") + (s.hot ? " hot" : "") + '"><div class="dot">' + (s.done ? ICON.check : "") + "</div><div><b>" + esc(s.label) + "</b><span>" + (s.when ? esc(K.whenText(s.when)) : "Not yet") + "</span>" + (s.note ? "<blockquote>" + esc(s.note) + "</blockquote>" : "") + "</div></div>"; }).join("") + "</div>";
+      if (hasFeedback(e)) { var oc = openComments(e).length, tc = (e.review.comments || []).length; html += '<div class="rnote" style="margin:0"><b>Client feedback' + (e.review.withApproval ? " (sent with approval)" : "") + "</b>" + (e.review.note ? esc(e.review.note) + "<br>" : "") + (tc ? '<span class="note">' + tc + " line comment" + (tc === 1 ? "" : "s") + (oc ? ", " + oc + " open - shown under the lines above" : ", all resolved") + '. <a href="#/review">Open Review</a></span>' : "") + "</div>"; }
       html += '<div class="field"><label>Client link</label><div class="linkbox"><input class="in" readonly value="' + esc(url) + '" id="shareUrl"><button class="btn sm" type="button" id="btnCopy">Copy</button><a class="btn sm" href="' + esc(url) + '" target="_blank" rel="noopener">Open</a></div></div>';
-      html += '<div class="addbar"><a class="btn sm" id="btnEmail" href="#">Email the link</a><button class="btn sm quiet" type="button" id="btnResend">Resend</button><button class="btn sm quiet danger" type="button" id="btnRevoke" title="Make a new link; the old one stops working">New link</button></div>';
-      if (e.status === "changed") html += '<p class="note">You changed this estimate after the client approved it. Send it again so they can approve the new version.</p>';
+      html += '<div class="addbar"><a class="btn sm" id="btnEmail" href="#">Email the link</a><button class="btn sm quiet" type="button" id="btnResend" title="Re-issue the same link and reset the status to Sent">Re-issue link</button><button class="btn sm quiet danger" type="button" id="btnRevoke" title="Make a new link; the old one stops working">New link</button></div>';
+      if (e.status === "changed") html += '<p class="note">You changed this estimate after the client approved it. Re-issue the link so they can approve the new version.</p>';
+      if (e.status === "changes") html += '<p class="note">Once you have made the changes, re-issue the link so the client can approve the updated estimate. Their comments move to history.</p>';
     }
     $("statusBody").innerHTML = html;
     var c = $("btnCopy"); if (c) c.onclick = function () { copyText(url); };
     var em = $("btnEmail"); if (em) em.href = mailto(e, url);
-    var rs = $("btnResend"); if (rs) rs.onclick = function () { send(false); };
-    var rv = $("btnRevoke"); if (rv) rv.onclick = function () { if (confirm("Create a new link? The old link will stop working.")) send(true); };
+    var rs = $("btnResend"); if (rs) rs.onclick = function () { send(false, true); };
+    var rv = $("btnRevoke"); if (rv) rv.onclick = function () { ask({ title: "Create a new link?", body: "The old link will stop working for the client. Use this if a link was shared with the wrong person.", okText: "New link", danger: true }).then(function (yes) { if (yes) send(true, true); }); };
   }
   function mailto(e, url) {
     var t = K.totals(e);
     var subject = "Your estimate from Kotar Renovations" + (e.project ? " - " + e.project : "");
-    var body = "Hi " + (e.client.name.split(" ")[0] || "") + ",\n\nHere is your estimate" + (e.project ? " for the " + e.project.toLowerCase() : "") + " (" + money(t.total) + " including HST).\n\nReview and approve it here:\n" + url + "\n\nQuestions? Just reply to this email or call 289-237-9622.\n\nThanks,\nTrevor Kotar\nKotar Renovations";
+    var body = "Hi " + (e.client.name.split(" ")[0] || "") + ",\n\nHere is your estimate" + (e.project ? " for the " + e.project.toLowerCase() : "") + " (" + money(t.total) + " including HST).\n\nReview, comment, and approve it here:\n" + url + "\n\nQuestions? Just reply to this email or call 289-237-9622.\n\nThanks,\nTrevor Kotar\nKotar Renovations";
     return "mailto:" + encodeURIComponent(e.client.email || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   }
   function copyText(t) { if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { toast("Link copied"); }, function () { toast("Select the link and copy it."); }); else toast("Select the link and copy it."); }
-  $("btnSend").onclick = function () { send(false); };
-  function send(refresh) {
+  $("btnSend").onclick = function () {
+    var e = state.est; if (!e) return;
+    if (e.share && e.share.token && e.status !== "changed" && e.status !== "changes") { copyText(location.origin + "/e/" + e.share.token); showLinkModal(location.origin + "/e/" + e.share.token, false); return; }
+    send(false, false);
+  };
+  function showLinkModal(url, fresh) {
+    var e = state.est; var first = esc((e.client.name || "").split(" ")[0]);
+    openModal('<header><h2>' + (fresh ? "Client link ready" : "Client link") + "</h2>" + ICON.close + '</header><div class="form"><p class="note" style="font-size:13.5px">Copied to your clipboard. Send it to ' + first + ' by text or email; this page does not email it for you. You will see here when they open it, comment, or approve.</p><div class="linkbox"><input class="in" readonly value="' + esc(url) + '"></div>' + (e.portalUrl ? '<p class="note">' + first + " can also see all their estimates at their portal link (in the Client card).</p>" : "") + '</div><footer><a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">Preview as client</a><span class="spacer"></span><a class="btn primary" href="' + mailto(e, url) + '">Email it</a></footer>', { narrow: true });
+  }
+  function send(refresh, force) {
     var e = state.est; if (!e) return;
     if (!e.client.name) { toast("Choose or add a client first."); $("clientSelect").focus(); return; }
-    if (K.totals(e).total <= 0 && !confirm("The total is $0. Send anyway?")) return;
-    $("btnSend").disabled = true;
-    flushSave().then(function () { return api("share", { method: "POST", body: { id: e.id, refresh: !!refresh } }); }).then(function (r) {
-      e.share = r.estimate.share; e.status = r.estimate.status; e.updatedAt = r.estimate.updatedAt; replaceLocal(e); renderStatus(); updateCrumb(); render();
-      copyText(r.url);
-      openModal('<header><h2>' + (refresh ? "New link ready" : "Ready to send") + "</h2>" + ICON.close + '</header><div class="form"><p class="note" style="font-size:13.5px">The link is copied to your clipboard. Send it however you like; you will see when ' + esc(e.client.name.split(" ")[0]) + ' opens it and when they approve.</p><div class="linkbox"><input class="in" readonly value="' + esc(r.url) + '"></div></div><footer><a class="btn" href="' + esc(r.url) + '" target="_blank" rel="noopener">Preview as client</a><span class="spacer"></span><a class="btn primary" href="' + mailto(e, r.url) + '">Email it</a></footer>', { narrow: true });
-    }).catch(function (er) { toast(er.message); }).then(function () { $("btnSend").disabled = false; });
+    var go = function () {
+      $("btnSend").disabled = true;
+      flushSave().then(function () { return api("share", { method: "POST", body: { id: e.id, refresh: !!refresh } }); }).then(function (r) {
+        e.share = r.estimate.share; e.status = r.estimate.status; e.review = r.estimate.review || null; e.reviewHistory = r.estimate.reviewHistory || []; e.updatedAt = r.estimate.updatedAt; e.portalUrl = r.portalUrl || null; replaceLocal(e);
+        if (r.portalUrl) { var cl = state.clients.filter(function (c) { return c.id === e.clientId; })[0]; if (cl) cl.portalToken = r.portalUrl.split("/c/")[1]; }
+        renderStatus(); renderClientPicker(); renderSections(); updateCrumb(); render(); updateReviewBadge();
+        copyText(r.url); showLinkModal(r.url, true);
+      }).catch(function (er) { toast(er.message); }).then(function () { $("btnSend").disabled = false; });
+    };
+    if (K.totals(e).total <= 0 && !force) ask({ title: "The total is $0", body: "This estimate has no price yet. The client would see a $0 total.", sub: "Add a sub-total (or amounts per section) first, or generate the link anyway.", okText: "Generate anyway", cancelText: "Go back" }).then(function (yes) { if (yes) go(); });
+    else go();
+  }
+
+  /* ---------- Review tab ---------- */
+  state.reviewFilter = "open";
+  $("reviewFilters").querySelectorAll("button").forEach(function (b) { b.onclick = function () { state.reviewFilter = b.dataset.f; $("reviewFilters").querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); }); renderReview(); }; });
+  function renderReview() {
+    var all = state.estimates.filter(hasFeedback);
+    var open = all.filter(function (e) { return openComments(e).length || (e.status === "changes" && !(e.review.comments || []).length); });
+    var totalComments = all.reduce(function (a, e) { return a + (e.review.comments || []).length; }, 0), openCount = all.reduce(function (a, e) { return a + openComments(e).length; }, 0);
+    $("reviewStats").innerHTML = '<div class="stat hot"><b>' + open.length + '</b><span>Estimates needing attention</span></div><div class="stat"><b>' + openCount + '</b><span>Open comments</span></div><div class="stat"><b>' + (totalComments - openCount) + '</b><span>Resolved</span></div><div class="stat"><b>' + money(open.reduce(function (a, e) { return a + K.totals(e).total; }, 0)) + '</b><span>Value awaiting changes</span></div>';
+    var list = (state.reviewFilter === "open" ? open : all).slice().sort(function (a, b) { return ((b.review && b.review.submittedAt) || "").localeCompare((a.review && a.review.submittedAt) || ""); });
+    var host = $("reviewCards"); host.innerHTML = "";
+    if (!list.length) { host.innerHTML = '<div class="rempty"><b>' + (all.length ? "All caught up" : "No client feedback yet") + "</b>" + (all.length ? "Every comment has been resolved. Switch to All feedback to look back." : "When a client comments on a line or requests changes, it shows up here with the exact line they meant.") + "</div>"; return; }
+    list.forEach(function (e) { host.appendChild(reviewCard(e)); });
+  }
+  function reviewCard(e) {
+    var rv = e.review, cs = rv.comments || [], oc = cs.filter(function (c) { return !c.resolved; }).length;
+    var card = document.createElement("div"); card.className = "rcard" + (oc || (e.status === "changes" && !cs.length) ? "" : " resolved");
+    var order = {}; e.sections.forEach(function (s, i) { order[s.id] = i; });
+    var sorted = cs.slice().sort(function (a, b) { return (order[a.sectionId] - order[b.sectionId]) || (a.idx - b.idx); });
+    card.innerHTML = '<div class="rhead"><div class="who"><b>' + esc(e.client.name || "Client") + "</b><span>" + esc(e.project || "") + (e.number ? " / " + esc(e.number) : "") + " / " + (rv.withApproval ? "sent with approval " : "changes requested ") + esc(K.whenText(rv.submittedAt)) + "</span></div>" + K.statusPill(e.status) + '<span class="tot">' + money(K.totals(e).total) + "</span></div>" +
+      '<div class="rbody"><div>' + (rv.note ? '<div class="rnote"><b>General note</b>' + esc(rv.note) + "</div>" : "") +
+      (sorted.length ? '<ul class="rlist">' + sorted.map(function (c) { return '<li class="' + (c.resolved ? "done" : "") + '" data-cid="' + esc(c.id) + '"><button type="button" class="tick" title="' + (c.resolved ? "Mark as open" : "Mark as resolved") + '">' + ICON.check + '</button><div><div class="where">' + esc(c.sectionTitle) + " <span>/</span> " + esc(c.itemText) + '</div><div class="what">' + esc(c.text) + "</div></div>" + (c.resolved ? '<span class="note">Resolved</span>' : "") + "</li>"; }).join("") + "</ul>" : '<p class="note">No line comments, just the note above.</p>') + "</div>" +
+      '<div class="rside"><div class="prog">' + (cs.length ? (cs.length - oc) + " of " + cs.length + " resolved" : "") + '</div><a class="btn primary" href="#/estimate/' + esc(e.id) + '">Open estimate</a>' + (cs.length && oc ? '<button class="btn" type="button" data-a="all">Mark all resolved</button>' : "") + (!oc && (e.status === "changes" || e.status === "changed") ? '<button class="btn ok" type="button" data-a="reissue">Re-issue client link</button>' : "") + '<a class="btn quiet" href="/e/' + esc((e.share || {}).token || "") + '" target="_blank" rel="noopener">View as client</a></div></div>';
+    card.querySelectorAll(".tick").forEach(function (t) { t.onclick = function () { var id = t.closest("li").dataset.cid; var c = cs.filter(function (x) { return x.id === id; })[0]; c.resolved = !c.resolved; saveReview(e); }; });
+    var all = card.querySelector('[data-a="all"]'); if (all) all.onclick = function () { cs.forEach(function (c) { c.resolved = true; }); saveReview(e); };
+    var re = card.querySelector('[data-a="reissue"]'); if (re) re.onclick = function () { state.est = e; send(false, true); };
+    return card;
+  }
+  function saveReview(e) {
+    api("estimates", { method: "POST", body: e }).then(function (saved) { e.review = saved.review; e.updatedAt = saved.updatedAt; replaceLocal(e); if (state.est && state.est.id === e.id) { state.est.review = saved.review; renderSections(); renderStatus(); } renderReview(); updateReviewBadge(); }).catch(function (er) { toast("Could not save: " + er.message); });
   }
 
   /* ---------- AI draft ---------- */

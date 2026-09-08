@@ -28,6 +28,7 @@ export default async (req) => {
       email: clean(b.email, 160),
       phone: clean(b.phone, 60),
       notes: clean(b.notes, 2000),
+      portalToken: existing?.portalToken || null,
       createdAt: existing?.createdAt || now(),
       updatedAt: now(),
     };
@@ -38,6 +39,8 @@ export default async (req) => {
   if (req.method === "DELETE") {
     const id = clean(url.searchParams.get("id"), 40);
     if (!id) return bad("id required");
+    const c = await s.get(id, { type: "json" });
+    if (c?.portalToken) await store("portals").delete(c.portalToken);
     await s.delete(id);
     return json({ ok: true });
   }

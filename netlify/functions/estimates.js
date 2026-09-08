@@ -43,6 +43,7 @@ export default async (req) => {
     if (!id) return bad("id required");
     const e = await s.get(id, { type: "json" });
     if (e?.share?.token) await store("shares").delete(e.share.token);
+    // keep the client's portal; it simply stops listing this estimate
     await s.delete(id);
     return json({ ok: true });
   }
