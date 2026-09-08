@@ -480,13 +480,16 @@
       var title = d.querySelector(".title"); title.oninput = function () { s.title = title.value; changed(); refreshFoot(); };
       var amt = d.querySelector(".amt input"); if (amt) { amt.oninput = function () { s.amount = K.parseMoney(amt.value); changed(); }; amt.onblur = function () { if (amt.value) amt.value = s.amount.toFixed(2); }; }
       var cmts = ((e.review && e.review.comments) || []).filter(function (c) { return c.sectionId === s.id; });
-      var editor = lineEditor(d.querySelector(".items"), s.items, function () { changed(); refreshFoot(); }, { emptyText: "No lines yet. Add one below.", decorate: function (row, idx, val) {
-        var c = null; for (var k = 0; k < cmts.length; k++) { if (cmts[k].idx === idx || (cmts[k].itemText && cmts[k].itemText === val.trim())) { c = cmts[k]; break; } }
-        if (!c) return;
+      function callout(c, label) {
         var el = document.createElement("div"); el.className = "ccall" + (c.resolved ? " done" : "");
-        el.innerHTML = '<div class="txt"><b>' + (c.resolved ? "Client comment - resolved" : "Client comment") + "</b>" + esc(c.text) + '</div><button type="button" class="btn sm ' + (c.resolved ? "quiet" : "soft") + '">' + (c.resolved ? "Reopen" : "Resolve") + "</button>";
+        el.innerHTML = '<div class="txt"><b>' + esc(label) + (c.resolved ? " - resolved" : "") + "</b>" + esc(c.text) + '</div><button type="button" class="btn sm ' + (c.resolved ? "quiet" : "soft") + '">' + (c.resolved ? "Reopen" : "Resolve") + "</button>";
         el.querySelector("button").onclick = function () { c.resolved = !c.resolved; saveReview(e); };
-        row.appendChild(el);
+        return el;
+      }
+      cmts.filter(function (c) { return c.idx === -1; }).forEach(function (c) { var wrap = document.createElement("div"); wrap.className = "seccall"; wrap.appendChild(callout(c, "Client comment on this section")); d.querySelector(".row").insertAdjacentElement("afterend", wrap); });
+      var editor = lineEditor(d.querySelector(".items"), s.items, function () { changed(); refreshFoot(); }, { emptyText: "No lines yet. Add one below.", decorate: function (row, idx, val) {
+        var c = null; for (var k = 0; k < cmts.length; k++) { if (cmts[k].idx === -1) continue; if (cmts[k].idx === idx || (cmts[k].itemText && cmts[k].itemText === val.trim())) { c = cmts[k]; break; } }
+        if (c) row.appendChild(callout(c, "Client comment"));
       } });
       d.querySelectorAll(".row [data-act]").forEach(function (b) { b.onclick = function () {
         var idx = e.sections.indexOf(s);
@@ -664,7 +667,7 @@
     var sorted = cs.slice().sort(function (a, b) { return (order[a.sectionId] - order[b.sectionId]) || (a.idx - b.idx); });
     card.innerHTML = '<div class="rhead"><div class="who"><b>' + esc(e.client.name || "Client") + "</b><span>" + esc(e.project || "") + (e.number ? " / " + esc(e.number) : "") + " / " + (rv.withApproval ? "sent with approval " : "changes requested ") + esc(K.whenText(rv.submittedAt)) + "</span></div>" + K.statusPill(e.status) + '<span class="tot">' + money(K.totals(e).total) + "</span></div>" +
       '<div class="rbody"><div>' + (rv.note ? '<div class="rnote"><b>General note</b>' + esc(rv.note) + "</div>" : "") +
-      (sorted.length ? '<ul class="rlist">' + sorted.map(function (c) { return '<li class="' + (c.resolved ? "done" : "") + '" data-cid="' + esc(c.id) + '"><button type="button" class="tick" title="' + (c.resolved ? "Mark as open" : "Mark as resolved") + '">' + ICON.check + '</button><div><div class="where">' + esc(c.sectionTitle) + " <span>/</span> " + esc(c.itemText) + '</div><div class="what">' + esc(c.text) + "</div></div>" + (c.resolved ? '<span class="note">Resolved</span>' : "") + "</li>"; }).join("") + "</ul>" : '<p class="note">No line comments, just the note above.</p>') + "</div>" +
+      (sorted.length ? '<ul class="rlist">' + sorted.map(function (c) { return '<li class="' + (c.resolved ? "done" : "") + '" data-cid="' + esc(c.id) + '"><button type="button" class="tick" title="' + (c.resolved ? "Mark as open" : "Mark as resolved") + '">' + ICON.check + '</button><div><div class="where">' + esc(c.sectionTitle) + " <span>/</span> " + (c.idx === -1 ? "<em>whole section</em>" : esc(c.itemText)) + '</div><div class="what">' + esc(c.text) + "</div></div>" + (c.resolved ? '<span class="note">Resolved</span>' : "") + "</li>"; }).join("") + "</ul>" : '<p class="note">No line comments, just the note above.</p>') + "</div>" +
       '<div class="rside"><div class="prog">' + (cs.length ? (cs.length - oc) + " of " + cs.length + " resolved" : "") + '</div><a class="btn primary" href="#/estimate/' + esc(e.id) + '">Open estimate</a>' + (cs.length && oc ? '<button class="btn" type="button" data-a="all">Mark all resolved</button>' : "") + (!oc && (e.status === "changes" || e.status === "changed") ? '<button class="btn ok" type="button" data-a="reissue">Re-issue client link</button>' : "") + '<a class="btn quiet" href="/e/' + esc((e.share || {}).token || "") + '" target="_blank" rel="noopener">View as client</a></div></div>';
     card.querySelectorAll(".tick").forEach(function (t) { t.onclick = function () { var id = t.closest("li").dataset.cid; var c = cs.filter(function (x) { return x.id === id; })[0]; c.resolved = !c.resolved; saveReview(e); }; });
     var all = card.querySelector('[data-a="all"]'); if (all) all.onclick = function () { cs.forEach(function (c) { c.resolved = true; }); saveReview(e); };

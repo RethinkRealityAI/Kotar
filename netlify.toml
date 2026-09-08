@@ -17,6 +17,12 @@
   to = "/portal.html"
   status = 200
 
+# How-to guide
+[[redirects]]
+  from = "/guide"
+  to = "/guide.html"
+  status = 200
+
 # Friendly API paths -> functions
 [[redirects]]
   from = "/api/*"

@@ -36,7 +36,15 @@
     if (portalToken) { $("btnPortal").hidden = false; $("btnPortal").href = "/c/" + portalToken; $("portalLink").href = "/c/" + portalToken; } else $("portalLink").removeAttribute("href");
     $("btnPdf").onclick = function () { $("btnPdf").disabled = true; K.downloadPDF(est, company).then(function () { toast("PDF downloaded"); }).catch(function () { toast("Could not build the PDF. Use your browser's Print to save it."); }).then(function () { $("btnPdf").disabled = false; }); };
     $("cmHint").hidden = !open();
-    renderPaper(); renderApprove(); renderComments();
+    renderPaper(); renderApprove(); renderComments(); renderMobileBar();
+  }
+  /* small sticky bar on phones: comment count + jump to the panel */
+  function renderMobileBar() {
+    var bar = $("mbar"); if (!bar) return;
+    if (!open()) { bar.hidden = true; return; }
+    bar.hidden = false;
+    bar.innerHTML = '<span>' + (comments.length ? comments.length + " comment" + (comments.length === 1 ? "" : "s") : "No comments yet") + '</span><button type="button" class="btn sm" id="mbarGo">' + (comments.length || note.trim() ? "Review and send" : "Approve or comment") + "</button>";
+    $("mbarGo").onclick = function () { var side = document.querySelector(".cside"); if (side && side.scrollIntoView) side.scrollIntoView({ behavior: "smooth", block: "start" }); };
   }
 
   /* ---------- paper with inline comment editors ---------- */
@@ -48,20 +56,28 @@
   }
   function findComment(key) { for (var i = 0; i < comments.length; i++) if (comments[i].sectionId + ":" + comments[i].idx === key) return comments[i]; return null; }
   function openEditor(key) { editing = key; renderPaper(); }
+  function targetFor(key) {
+    var sid = key.split(":")[0], idx = +key.split(":")[1];
+    if (idx === -1) { var sec = document.querySelector('#paper .psec[data-sid="' + sid + '"]'); return sec ? { host: sec, after: sec.querySelector(".st"), lc: sec.querySelector(".sec-lc"), text: sec.querySelector("h3").textContent, isSection: true } : null; }
+    var li = document.querySelector('#paper li[data-sid="' + sid + '"][data-idx="' + idx + '"]');
+    return li ? { host: li, after: null, lc: li.querySelector(".lc"), text: li.querySelector(".lt").textContent, isSection: false } : null;
+  }
   function mountEditor(key) {
-    var li = document.querySelector('#paper li[data-sid="' + key.split(":")[0] + '"][data-idx="' + key.split(":")[1] + '"]'); if (!li) { editing = null; return; }
+    var t = targetFor(key); if (!t) { editing = null; return; }
     var existing = findComment(key);
     var box = document.createElement("div"); box.className = "cedit";
-    box.innerHTML = '<textarea rows="2" placeholder="e.g. Can this be a rain shower head instead?" aria-label="Your comment on this line">' + esc(existing ? existing.text : "") + '</textarea><div class="row"><button type="button" class="btn sm primary" data-a="save">Save comment</button><button type="button" class="btn sm quiet" data-a="cancel">Cancel</button>' + (existing ? '<button type="button" class="btn sm quiet danger" data-a="remove">Remove</button>' : "") + "</div>";
-    var old = li.querySelector(".lc"); if (old) old.hidden = true;
-    li.appendChild(box);
+    box.innerHTML = '<div class="cedit-hd">' + (t.isSection ? "Comment on the whole <b>" + esc(t.text) + "</b> section" : "Comment on: <b>" + esc(t.text) + "</b>") + '</div><textarea rows="2" placeholder="' + (t.isSection ? "e.g. Can we do this section in a second phase?" : "e.g. Can this be a rain shower head instead?") + '" aria-label="Your comment">' + esc(existing ? existing.text : "") + '</textarea><div class="row"><button type="button" class="btn sm primary" data-a="save">' + (existing ? "Update comment" : "Add comment") + '</button><button type="button" class="btn sm quiet" data-a="cancel">Cancel</button>' + (existing ? '<button type="button" class="btn sm quiet danger" data-a="remove">Remove</button>' : "") + '<span class="kbd">Ctrl+Enter to save</span></div>';
+    if (t.lc) t.lc.hidden = true;
+    if (t.after) t.after.insertAdjacentElement("afterend", box); else t.host.appendChild(box);
     var ta = box.querySelector("textarea"); setTimeout(function () { ta.focus(); }, 20);
     ta.addEventListener("keydown", function (ev) { if ((ev.ctrlKey || ev.metaKey) && ev.key === "Enter") save(); if (ev.key === "Escape") cancel(); });
     function save() {
       var text = ta.value.trim(); if (!text) { cancel(); return; }
-      var sec = est.sections.filter(function (s) { return s.id === key.split(":")[0]; })[0];
-      if (existing) existing.text = text; else comments.push({ id: uid(), sectionId: key.split(":")[0], sectionTitle: sec ? sec.title : "", idx: +key.split(":")[1], itemText: li.querySelector(".lt").textContent, text: text });
-      editing = null; saveDraft(); renderPaper(); renderComments(); renderApprove();
+      var sid = key.split(":")[0], idx = +key.split(":")[1];
+      var sec = est.sections.filter(function (s) { return s.id === sid; })[0];
+      if (existing) existing.text = text; else comments.push({ id: uid(), sectionId: sid, sectionTitle: sec ? sec.title : "", idx: idx, itemText: t.isSection ? "" : t.text, text: text });
+      editing = null; saveDraft(); renderPaper(); renderComments(); renderApprove(); renderMobileBar();
+      toast(existing ? "Comment updated" : "Comment added. Send it from the panel when you are done.");
     }
     function cancel() { editing = null; renderPaper(); }
     box.querySelector('[data-a="save"]').onclick = save;
@@ -69,7 +85,7 @@
     var rm = box.querySelector('[data-a="remove"]'); if (rm) rm.onclick = function () { removeComment(existing.id); };
     box.scrollIntoView && box.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
-  function removeComment(id) { comments = comments.filter(function (c) { return c.id !== id; }); editing = null; saveDraft(); renderPaper(); renderComments(); renderApprove(); }
+  function removeComment(id) { comments = comments.filter(function (c) { return c.id !== id; }); editing = null; saveDraft(); renderPaper(); renderComments(); renderApprove(); renderMobileBar(); }
 
   /* ---------- left column: approve ---------- */
   function renderApprove() {
@@ -105,11 +121,11 @@
     var submitted = est.status === "changes" && est.review;
     c.innerHTML = '<h2>Your comments' + (comments.length ? ' <span class="cnt">' + comments.length + "</span>" : "") + "</h2>" +
       (submitted ? '<div class="done soft">Sent to Kotar on ' + esc(K.longDate(est.review.submittedAt)) + ". Trevor will send an updated estimate. You can still add or change comments and send again.</div>" : "") +
-      (comments.length ? listHTML(true) : '<p class="note">No line comments yet. Hover a line in the estimate and press <b>Comment</b>.</p>') +
+      (comments.length ? listHTML(true) : '<p class="note">No comments yet. Press the <span class="cbtn-inline">+</span> speech bubble beside any line (or section title) in the estimate to add one.</p>') +
       '<label class="field"><span class="lbl">Anything else? <em>(optional)</em></span><textarea class="in" id="gnote" rows="3" placeholder="Timing, budget, materials, questions...">' + esc(note) + "</textarea></label>" +
       '<button class="btn primary" id="chBtn" type="button"' + (comments.length || note.trim() ? "" : " disabled") + ">" + (submitted ? "Send updated comments" : "Request changes") + "</button>" +
       '<p class="note">Sends your comments to Trevor without approving. He will update the estimate and send it back.</p>';
-    c.querySelectorAll("[data-edit]").forEach(function (b) { b.onclick = function () { openEditor(b.dataset.edit); var li = document.querySelector('#paper li[data-sid="' + b.dataset.edit.split(":")[0] + '"][data-idx="' + b.dataset.edit.split(":")[1] + '"]'); if (li && li.scrollIntoView) li.scrollIntoView({ behavior: "smooth", block: "center" }); }; });
+    c.querySelectorAll("[data-edit]").forEach(function (b) { b.onclick = function () { openEditor(b.dataset.edit); var t = targetFor(b.dataset.edit); if (t && t.host.scrollIntoView) t.host.scrollIntoView({ behavior: "smooth", block: "center" }); }; });
     c.querySelectorAll("[data-rm]").forEach(function (b) { b.onclick = function () { removeComment(b.dataset.rm); }; });
     var g = $("gnote"), chBtn = $("chBtn");
     g.addEventListener("input", function () { note = g.value; saveDraft(); chBtn.disabled = !(comments.length || note.trim()); });
@@ -125,7 +141,7 @@
     var order = {}; est.sections.forEach(function (s, i) { order[s.id] = i; });
     var sorted = comments.slice().sort(function (a, b) { return (order[a.sectionId] - order[b.sectionId]) || (a.idx - b.idx); });
     return '<ul class="clist">' + sorted.map(function (c) {
-      return '<li><div class="where">' + esc(c.sectionTitle) + ' <span>/</span> ' + esc(c.itemText) + '</div><div class="what">' + esc(c.text) + "</div>" +
+      return '<li><div class="where">' + esc(c.sectionTitle) + (c.idx === -1 ? ' <span>/</span> <em>whole section</em>' : ' <span>/</span> ' + esc(c.itemText)) + '</div><div class="what">' + esc(c.text) + "</div>" +
         (editable ? '<div class="row"><button type="button" class="linkbtn" data-edit="' + esc(c.sectionId + ":" + c.idx) + '">Edit</button><button type="button" class="linkbtn danger" data-rm="' + esc(c.id) + '">Remove</button></div>' : "") + "</li>";
     }).join("") + "</ul>";
   }

@@ -168,7 +168,7 @@ window.Kotar = (function () {
      opts.comments: array of {sectionId, idx, itemText, text} to render as callouts under lines (client page). */
   function commentFor(comments, s, idx, text) {
     if (!comments) return null;
-    for (var i = 0; i < comments.length; i++) { var c = comments[i]; if (c.sectionId === s.id && (c.idx === idx || (c.itemText && c.itemText === text))) return c; }
+    for (var i = 0; i < comments.length; i++) { var c = comments[i]; if (c.sectionId !== s.id) continue; if (idx === -1 ? c.idx === -1 : (c.idx === idx || (text && c.itemText && c.itemText === text && c.idx !== -1))) return c; }
     return null;
   }
   function paperHTML(est, co, opts) {
@@ -183,16 +183,24 @@ window.Kotar = (function () {
       '<h2 class="scope">Scope of Work</h2>';
     var secs = activeSections(est);
     if (!secs.length) html += '<p class="empty">No scope added yet.</p>';
+    var CBTN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M12 8v6M9 11h6"/></svg>';
+    var CBTN_HAS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8 12h8M8 9h5"/></svg>';
+    function cbtn(key, c, what) {
+      return '<button type="button" class="cbtn' + (c ? " has" : "") + '" data-c="' + esc(key) + '" data-tip="' + (c ? "Edit your comment" : "Comment on this " + what) + '" aria-label="' + (c ? "Edit your comment" : "Comment on this " + what) + '">' + (c ? CBTN_HAS : CBTN_ICON) + "</button>";
+    }
+    var label = esc(opts.commentLabel || "Your comment");
     secs.forEach(function (s) {
-      html += '<div class="psec" data-sid="' + esc(s.id) + '"><div class="st"><h3>' + esc(s.title) + "</h3>" + (perSec ? '<span class="amt">' + money(s.amount) + "</span>" : "") + "</div>";
+      var sc = opts.comments ? commentFor(opts.comments, s, -1, null) : null;
+      html += '<div class="psec' + (opts.commentable ? " cm" : "") + '" data-sid="' + esc(s.id) + '"><div class="st"><h3>' + esc(s.title) + "</h3>" + (perSec ? '<span class="amt">' + money(s.amount) + "</span>" : "") + (opts.commentable ? cbtn(s.id + ":-1", sc, "section") : "") + "</div>" +
+        (sc ? '<div class="lc sec-lc"><b>' + label + "</b>" + esc(sc.text) + "</div>" : "");
       var lis = "";
       s.items.forEach(function (raw, idx) {
         var x = raw.trim(); if (!x) return;
         var c = commentFor(opts.comments, s, idx, x);
         var cls = (/:$/.test(x) ? "sub" : "") + (opts.commentable ? " cm" : "") + (c ? " has-c" : "");
         lis += '<li class="' + cls.trim() + '" data-sid="' + esc(s.id) + '" data-idx="' + idx + '"><span class="lt">' + esc(x) + "</span>" +
-          (opts.commentable ? '<button type="button" class="cbtn" data-c="' + esc(s.id) + ":" + idx + '" title="' + (c ? "Edit your comment" : "Comment on this line") + '" aria-label="Comment on this line">' + (c ? "Edit comment" : "Comment") + "</button>" : "") +
-          (c ? '<div class="lc"><b>' + esc(opts.commentLabel || "Your comment") + "</b>" + esc(c.text) + "</div>" : "") + "</li>";
+          (opts.commentable && !/:$/.test(x) ? cbtn(s.id + ":" + idx, c, "line") : "") +
+          (c ? '<div class="lc"><b>' + label + "</b>" + esc(c.text) + "</div>" : "") + "</li>";
       });
       if (lis) html += "<ul>" + lis + "</ul>";
       html += "</div>";

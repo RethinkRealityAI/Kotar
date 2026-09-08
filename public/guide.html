@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>How to use Kotar Estimates</title>
+<link rel="icon" href="/kotar-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<style>
+.gwrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:34px;max-width:1240px;margin:0 auto;padding:28px 20px 90px;align-items:start}
+@media (max-width:900px){.gwrap{grid-template-columns:1fr}.gnav{position:static;display:flex;flex-wrap:wrap;gap:6px}.gnav a{border:1px solid var(--line);border-radius:999px;padding:4px 10px}}
+.gnav{position:sticky;top:64px;display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.gnav a{color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:8px;border-left:2px solid transparent}
+.gnav a:hover{color:var(--ink);background:var(--panel)}
+.gnav a.on{color:var(--accent);border-left-color:var(--accent);background:var(--panel)}
+.gnav .grp{font-family:var(--display);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);margin:14px 0 4px 10px}
+.gnav .grp:first-child{margin-top:0}
+.gmain{min-width:0;max-width:820px}
+.gmain h1{font-size:30px;font-weight:800;margin-bottom:6px}
+.gmain .lede{color:var(--muted);font-size:15.5px;line-height:1.6;max-width:62ch}
+.gmain .updated{display:inline-flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin-top:14px}
+.gmain section{margin-top:46px;scroll-margin-top:80px}
+.gmain h2{font-size:21px;font-weight:800;margin-bottom:8px}
+.gmain h3{font-size:15px;font-weight:700;margin:22px 0 6px}
+.gmain p{font-size:15px;line-height:1.65;max-width:66ch;margin:0 0 10px}
+.gmain ol,.gmain ul{font-size:15px;line-height:1.65;padding-left:22px;margin:0 0 12px;max-width:66ch}
+.gmain li{margin:3px 0}
+.gmain li::marker{color:var(--accent);font-weight:700}
+.gmain figure{margin:14px 0 20px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.gmain figure img{display:block;width:100%;height:auto}
+.gmain figure.phone{max-width:320px}
+.gmain figcaption{padding:9px 14px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line)}
+.tip{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 8px 8px 0;font-size:14px;margin:12px 0;max-width:66ch}
+.tip b{color:var(--accent)}
+.kbd{display:inline-block;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 6px;font-size:12px;font-family:var(--body);background:var(--panel)}
+.faq details{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px;margin:8px 0;max-width:70ch}
+.faq summary{cursor:pointer;font-weight:600;padding:12px 0;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq details p{padding-bottom:12px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="/"><img src="/kotar-logo.png" alt=""><div><h1>Kotar Renovations</h1><span>How to use</span></div></a>
+  <div class="grow"></div>
+  <a class="btn quiet" href="/">Back to the app</a>
+</div>
+
+<div class="gwrap">
+  <nav class="gnav" id="gnav">
+    <div class="grp">Getting started</div>
+    <a href="#overview">What this is</a>
+    <a href="#dashboard">The dashboard</a>
+    <div class="grp">Making an estimate</div>
+    <a href="#new">Start a new estimate</a>
+    <a href="#ai">Describe the job (AI)</a>
+    <a href="#client">Pick the client</a>
+    <a href="#scope">Scope of work</a>
+    <a href="#pricing">Pricing and notes</a>
+    <a href="#pdf">PDF</a>
+    <div class="grp">Working with clients</div>
+    <a href="#link">Generate the client link</a>
+    <a href="#client-page">What the client sees</a>
+    <a href="#review">Review tab</a>
+    <a href="#portal">Client portal</a>
+    <div class="grp">Settings</div>
+    <a href="#clients">Clients</a>
+    <a href="#library">Scope Library</a>
+    <a href="#faq">Questions</a>
+  </nav>
+
+  <main class="gmain">
+    <h1>How to use Kotar Estimates</h1>
+    <p class="lede">Everything the app does, in the order you would use it on a real job: build the estimate, send the client a link, handle their comments, get the approval. Screenshots are taken from the live app, so what you see here is what you will see on screen.</p>
+    <div class="updated" id="updated">Guide updated with the latest release</div>
+
+    <section id="overview">
+      <h2>What this is</h2>
+      <p>Kotar Estimates replaces the Word document. You describe a job, pick a client, tidy the scope, set the price, and the app produces the branded estimate. Instead of emailing a PDF back and forth, you give the client a private link where they can read every line, comment on anything, download the PDF, and approve with their name. You see each step on your side.</p>
+      <p>It works in any browser on your computer or phone at <b>kotar-estimates.netlify.app</b>. The first time you open it, type the team passcode; the browser remembers it.</p>
+    </section>
+
+    <section id="dashboard">
+      <h2>The dashboard</h2>
+      <figure><img src="/guide/01-dashboard.png" alt="Dashboard with estimate list and status counts"><figcaption>Estimates, newest first, with status and totals.</figcaption></figure>
+      <p>Four numbers at the top: how many estimates you have, how many are out with clients, how much money is waiting for approval, and how much has been approved. Below, every estimate with its status pill:</p>
+      <ul>
+        <li><b>Draft</b> - only you have seen it.</li>
+        <li><b>Sent</b> - you generated a client link but the client has not opened it yet.</li>
+        <li><b>Viewed</b> - the client has opened the link.</li>
+        <li><b>Approved</b> - the client typed their name and approved.</li>
+        <li><b>Changes requested</b> - the client left comments. See the <a href="#review">Review tab</a>.</li>
+        <li><b>Edited after approval</b> - you changed an approved estimate; re-issue the link so they can approve the new version.</li>
+      </ul>
+      <p>Use the filter chips or the search box (client, project, number) to find things. Click a row to open it.</p>
+    </section>
+
+    <section id="new">
+      <h2>Start a new estimate</h2>
+      <figure><img src="/guide/02-new-estimate-templates.png" alt="Template chooser: Bathroom, Kitchen, Basement, Blank"><figcaption>New estimate asks what kind of job it is.</figcaption></figure>
+      <ol>
+        <li>Press <b>New estimate</b> (top right).</li>
+        <li>Choose a starting point. <b>Bathroom</b> loads your standard 11 sections exactly as written; <b>Kitchen</b> and <b>Basement</b> load their usual trades; <b>Blank</b> starts empty.</li>
+        <li>The estimate number (KR-date) and today's date fill in automatically.</li>
+      </ol>
+      <p>Everything saves as you type; there is no Save button. The small text under the estimate name says "Saved" or "Unsaved changes".</p>
+    </section>
+
+    <section id="ai">
+      <h2>Describe the job (AI)</h2>
+      <figure><img src="/guide/03-describe-the-job.png" alt="Describe the job box with a sample description"><figcaption>Type or dictate the job in plain words.</figcaption></figure>
+      <p>The fastest way to build an estimate. In the red <b>Describe the job</b> box, type (or press <b>Talk</b> and speak) what you would tell a colleague: the client and address, the room, what is new and what is being re-used, the price, and any conditions. Press <b>Draft the estimate</b>.</p>
+      <p>The app picks the right sections from your Scope Library, writes the lines in your usual wording, fills in the client, sets the price and HST, and adds your standard notes. It never invents a price: if you did not say one, the total stays $0 until you type it.</p>
+      <div class="tip"><b>Changing an existing estimate:</b> tick <b>Apply as changes to this estimate</b> and describe only what is different ("add a heated floor, $900 more"). Everything else is left alone.</div>
+      <p>If the box says the AI is busy, wait a minute and try again; the form below always works by hand.</p>
+    </section>
+
+    <section id="client">
+      <h2>Pick the client</h2>
+      <p>In the <b>Client</b> card, choose a client from the list or press <b>New</b> to add one. Their name, address, email and phone fill the estimate. If the AI drafted a client you have not saved yet, press <b>Save as client</b> so they appear in the list next time.</p>
+      <p>Once a client is saved, the card shows a <b>Client portal</b> link: one page where that client can see every estimate you have sent them (see <a href="#portal">Client portal</a>).</p>
+    </section>
+
+    <section id="scope">
+      <h2>Scope of work</h2>
+      <figure><img src="/guide/04-scope-of-work.png" alt="Scope of work sections with line editor and live preview"><figcaption>Left: the sections you edit. Right: the estimate exactly as the client will see it.</figcaption></figure>
+      <p>Each section is a list of lines. Click any line to edit it. Press <span class="kbd">Enter</span> to add a line below, <span class="kbd">Backspace</span> on an empty line to remove it, or use the <b>+</b> and <b>x</b> that appear beside a line. A line ending in a colon (like "Rough in and finish of:") becomes a sub-heading.</p>
+      <p>Under every section: <b>Add line</b>, <b>Section below</b> (insert a new section right there), and a note telling you whether the section still matches your library.</p>
+      <ul>
+        <li><b>Matches library</b> - same wording as your Scope Library.</li>
+        <li><b>Changed from library</b> - you edited it here. <b>Update library</b> makes your library match; <b>Use library version</b> puts the standard wording back.</li>
+        <li><b>One-off section</b> - not in the library. <b>Save to library</b> keeps it for future estimates.</li>
+      </ul>
+      <p>Move sections with the up/down arrows; remove one with the trash icon (you can always add it back).</p>
+
+      <h3>Adding sections</h3>
+      <figure><img src="/guide/05-add-scope-picker.png" alt="Add scope of work picker with sections grouped by category"><figcaption>Add scope: tick as many as you need.</figcaption></figure>
+      <p>Press <b>Add scope</b>. Sections are grouped by category (Prep and Demo, Bathroom, Kitchen, Interior, Exterior, Systems, Finishing, Custom) with their standard lines underneath. Tick the ones you want and press <b>Add</b>; they drop into the right place in build order. Sections already on the estimate are marked "Added". Type in the search box to find a trade or a line.</p>
+      <figure><img src="/guide/06-new-section-form.png" alt="New section form with name, category, lines and save-to-library checkbox"><figcaption>New section: one-off, or saved to the library too.</figcaption></figure>
+      <p>For something not in the library, switch to <b>New section</b>: give it a name, a category, and its lines. Leave the checkbox off for a one-off; tick <b>Also save to the Scope Library</b> to reuse it later.</p>
+    </section>
+
+    <section id="pricing">
+      <h2>Pricing and notes</h2>
+      <p><b>Single total</b> is how your estimates have always been priced: type one sub-total and the app adds 13% HST. <b>Price by section</b> puts an amount box beside each section; the sub-total is their sum and the client sees a price per trade.</p>
+      <p><b>Notes and conditions</b> print at the bottom of the estimate, one per line. Your three standard notes are there by default.</p>
+    </section>
+
+    <section id="pdf">
+      <h2>PDF</h2>
+      <p>Press <b>PDF</b> in the top bar of any estimate to download the letter-size PDF with your logo, colours and HST number. The file is named "Kotar Estimate - Client - Date.pdf". Clients can download the same PDF from their link.</p>
+    </section>
+
+    <section id="link">
+      <h2>Generate the client link</h2>
+      <figure><img src="/guide/07-pricing-and-client-link.png" alt="Pricing card and Client link and approval card"><figcaption>The client link card tracks every step.</figcaption></figure>
+      <ol>
+        <li>Press <b>Generate client link</b>. The link is copied to your clipboard and shown in a box.</li>
+        <li>Send it however you like: <b>Email it</b> opens a pre-written email in your mail app, or paste the link into a text message. The app does not email anything by itself.</li>
+        <li>Watch the <b>Client link and approval</b> card: Link generated, Opened by client, Approved (with the client's name and time).</li>
+      </ol>
+      <p>The button changes to <b>Copy client link</b> once a link exists. <b>Re-issue link</b> resets the status to Sent after you have made changes; <b>New link</b> makes the old link stop working (use it if a link went to the wrong person).</p>
+      <div class="tip"><b>$0 estimates:</b> if you try to generate a link with no price, the app asks first. Add the price, or choose "Generate anyway" if you want the client to see the scope only.</div>
+    </section>
+
+    <section id="client-page">
+      <h2>What the client sees</h2>
+      <figure><img src="/guide/12-client-review-page.png" alt="Client review page: approval panel on the left, estimate with comment buttons on the right"><figcaption>The client's page. Left: approve and comments. Right: the estimate with a comment button on every line.</figcaption></figure>
+      <p>No login, no app to install. The client opens the link and sees their estimate exactly as your preview shows it, with:</p>
+      <ul>
+        <li><b>Approve this estimate</b> - the total, a box for their full name, and a checkbox confirming they read the scope. The Approve button only lights up once both are done.</li>
+        <li><b>A comment button beside every line and section title.</b> Pressing it opens a small box under that line. Their comments collect in the <b>Your comments</b> panel, where they can edit or remove them, add a general note, and press <b>Request changes</b>.</li>
+        <li><b>Download PDF</b> and, if they have several estimates, <b>All your estimates</b>.</li>
+      </ul>
+      <figure><img src="/guide/13-client-adds-a-comment.png" alt="Comment box open under a line item"><figcaption>Commenting on a line.</figcaption></figure>
+      <p>If they approve while they still have comments, the comments come through to you as notes attached to the approval. Comments they have not sent yet are kept on their device, so they can come back and finish later.</p>
+      <figure class="phone"><img src="/guide/15-client-review-mobile.png" alt="Client review page on a phone"><figcaption>On a phone the estimate comes first and the approval panel follows; a bar at the bottom jumps to it.</figcaption></figure>
+    </section>
+
+    <section id="review">
+      <h2>Review tab</h2>
+      <figure><img src="/guide/08-review-tab.png" alt="Review tab with an estimate card listing client comments"><figcaption>Every client comment, with the exact line it refers to.</figcaption></figure>
+      <p>When a client requests changes, the <b>Review</b> tab shows a badge. Each card lists the client's general note and every line comment ("Plumbing / New shower - Could this be a rain shower head instead?"). Tick a comment once you have dealt with it, or <b>Mark all resolved</b>.</p>
+      <figure><img src="/guide/09-client-comment-in-builder.png" alt="Client comment shown under the line in the estimate builder"><figcaption>Inside the estimate, the comment sits under the line it is about.</figcaption></figure>
+      <p><b>Open estimate</b> takes you to the builder, where each comment appears right under its line so you can change the wording or price there and press <b>Resolve</b>. When everything is resolved, press <b>Re-issue client link</b>: the client gets the updated estimate to approve, and their old comments move to history.</p>
+    </section>
+
+    <section id="portal">
+      <h2>Client portal</h2>
+      <figure><img src="/guide/14-client-portal.png" alt="Client portal listing estimates as cards with status"><figcaption>One link per client, all their estimates.</figcaption></figure>
+      <p>Every client gets a portal link (it is created the first time you generate an estimate link for them; you can copy it from the Client card). It lists each estimate you have sent them as a card - project, number, total, and a plain-language status such as "Awaiting your approval" - with buttons to review, approve, or download. Useful for clients with more than one job, or who lose the original link.</p>
+    </section>
+
+    <section id="clients">
+      <h2>Clients</h2>
+      <figure><img src="/guide/10-clients.png" alt="Clients tab with client cards"><figcaption>Clients you can pick from when building estimates.</figcaption></figure>
+      <p>Add a client once and pick them on any estimate. Click a card to edit details or add private notes (never printed). Estimates keep their own copy of the client details, so editing a client does not change estimates already sent.</p>
+    </section>
+
+    <section id="library">
+      <h2>Scope Library</h2>
+      <figure><img src="/guide/11-scope-library.png" alt="Scope Library with editable section cards grouped by category"><figcaption>Your standard sections and wording, editable in one place.</figcaption></figure>
+      <p>The Scope Library is the wording behind the <b>Add scope</b> picker, the templates, and the AI. Every section is a card you can edit: rename it, move it to another category, add or reword lines, then <b>Save changes</b>. Built-in sections can be <b>Removed</b> from the picker (tick "Show removed sections" to restore) or <b>Reset to default</b>; your custom sections can be deleted. <b>New scope section</b> adds one directly.</p>
+      <p>Library changes apply to new estimates. Estimates you already made keep their own copy of every line.</p>
+    </section>
+
+    <section id="faq" class="faq">
+      <h2>Questions</h2>
+      <details><summary>The client says the link does not work.</summary><p>Either you pressed <b>New link</b> (the old one stops working) or the estimate was deleted. Open the estimate and copy the current link from the Client link card.</p></details>
+      <details><summary>I changed an approved estimate by mistake.</summary><p>The status becomes "Edited after approval" so nothing is lost. Put it back the way it was, or re-issue the link so the client approves the new version.</p></details>
+      <details><summary>Can two people use the app at once?</summary><p>Yes. Everyone uses the same passcode and sees the same estimates, clients and library. The app refreshes statuses when you switch back to its tab.</p></details>
+      <details><summary>Where is the data stored?</summary><p>On the Kotar Estimates server, not on your computer. Clearing your browser only forgets the passcode.</p></details>
+      <details><summary>Does the AI see my client's details?</summary><p>Only the description you type in the box is sent to draft the estimate. Nothing is sent when you edit the form by hand.</p></details>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  // "Updated" stamp: the deploy date of this page
+  var d = new Date(document.lastModified); if (!isNaN(d)) document.getElementById("updated").textContent = "Guide updated " + d.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+  // highlight the section in view
+  var links = Array.prototype.slice.call(document.querySelectorAll("#gnav a"));
+  var secs = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
+  function sync() { var y = window.scrollY + 120, cur = 0; secs.forEach(function (s, i) { if (s && s.offsetTop <= y) cur = i; }); links.forEach(function (a, i) { a.classList.toggle("on", i === cur); }); }
+  window.addEventListener("scroll", sync, { passive: true }); sync();
+})();
+</script>
+</body>
+</html>

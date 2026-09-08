@@ -386,28 +386,45 @@ select.in{appearance:none;-webkit-appearance:none;padding-right:32px;background-
 .clist li{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;padding:8px 12px}
 .clist .where{font-size:11.5px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap}
 .clist .where span{color:var(--muted-2)}
+.clist .where em{font-style:normal;color:var(--accent)}
 .clist .what{font-size:13.5px;margin-top:2px}
 .clist .row{display:flex;gap:12px;margin-top:4px}
 .linkbtn{border:none;background:none;padding:0;color:var(--accent);font-size:12.5px;cursor:pointer;text-decoration:underline}
 .linkbtn.danger{color:var(--danger)}
 .gnote{margin:0;padding:8px 12px;border-left:3px solid var(--line-strong);color:var(--muted);font-size:13.5px}
 
-/* commentable lines inside the paper */
+/* commentable lines and sections inside the paper */
 .paper li{position:relative}
-.paper li .cbtn{position:absolute;right:0;top:0;font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid var(--paper-line);background:#fff;color:var(--paper-accent);cursor:pointer;opacity:0;transition:opacity .1s;font-family:var(--body)}
-.paper li.cm{padding-right:110px}
-.paper li.cm:hover{background:#FBF3F4;border-radius:4px}
-.paper li.cm:hover .cbtn,.paper li.has-c .cbtn,.paper li:focus-within .cbtn{opacity:1}
-@media (hover:none){.paper li .cbtn{opacity:1}}
-.paper li .lc{margin:4px 0 6px;padding:6px 10px;border-left:3px solid var(--paper-accent);background:#FBEDEF;border-radius:0 6px 6px 0;font-size:12px;color:#5A2A30}
-.paper li .lc b{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--paper-accent);margin-bottom:2px}
-.paper li .cedit{margin:6px 0 8px;display:flex;flex-direction:column;gap:6px}
-.paper li .cedit textarea{width:100%;padding:8px 10px;border:1px solid var(--paper-accent);border-radius:8px;font:inherit;font-size:13px;resize:vertical;background:#fff;color:#232323}
-.paper li .cedit .row{display:flex;gap:6px;flex-wrap:wrap}
-.paper li .cedit .btn{color:#232323}
-.paper li .cedit .btn.primary{color:#fff}
-.paper li.has-c{padding-right:110px}
+.paper .psec.cm .st{position:relative;padding-right:34px}
+.paper li.cm{padding-right:34px;border-radius:4px}
+.paper li.cm:hover,.paper li.cm:focus-within{background:#FBF3F4}
+.paper .cbtn{position:absolute;right:0;top:-1px;width:26px;height:26px;border-radius:50%;border:1px solid #E3CFD2;background:#fff;color:#B8848C;cursor:pointer;display:grid;place-items:center;padding:0;transition:color .1s,border-color .1s,background .1s,transform .08s}
+.paper .cbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.paper .cbtn:hover,.paper .cbtn:focus-visible{color:#fff;background:var(--paper-accent);border-color:var(--paper-accent);transform:scale(1.06)}
+.paper .cbtn.has{color:#fff;background:var(--paper-accent);border-color:var(--paper-accent)}
+.paper .cbtn.has:hover{background:#7E1824}
+.paper .psec.cm .st .cbtn{top:-3px}
+/* tooltip */
+.paper .cbtn::after{content:attr(data-tip);position:absolute;right:32px;top:50%;transform:translateY(-50%) translateX(4px);background:#232323;color:#fff;font:500 11.5px/1 var(--body);padding:6px 9px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s,transform .1s;z-index:5}
+.paper .cbtn:hover::after,.paper .cbtn:focus-visible::after{opacity:1;transform:translateY(-50%) translateX(0)}
+@media (hover:none){.paper .cbtn::after{display:none}}
+.paper .lc{margin:4px 0 6px;padding:6px 10px;border-left:3px solid var(--paper-accent);background:#FBEDEF;border-radius:0 6px 6px 0;font-size:12px;color:#5A2A30}
+.paper .lc b{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--paper-accent);margin-bottom:2px}
+.paper .lc.sec-lc{margin:6px 0 4px}
+.paper .cedit{margin:6px 0 8px;display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--paper-accent);border-radius:10px;background:#fff}
+.paper .cedit .cedit-hd{font-size:12px;color:#5A2A30}
+.paper .cedit textarea{width:100%;padding:8px 10px;border:1px solid #E3CFD2;border-radius:8px;font:inherit;font-size:13px;resize:vertical;background:#fff;color:#232323}
+.paper .cedit textarea:focus{outline:none;border-color:var(--paper-accent);box-shadow:0 0 0 3px #FBEDEF}
+.paper .cedit .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.paper .cedit .btn{color:#232323}
+.paper .cedit .btn.primary{color:#fff}
+.paper .cedit .kbd{margin-left:auto;font-size:11px;color:#9C9793}
 .paper li.sub .cbtn{display:none}
+.cbtn-inline{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;line-height:1;vertical-align:-3px}
+
+/* mobile action bar (client review) */
+.mbar{display:none}
+@media (max-width:960px){.mbar{display:flex;position:sticky;bottom:0;z-index:15;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);font-size:13px;color:var(--muted)}.mbar[hidden]{display:none}}
 
 /* portal */
 .portal{max-width:1100px;margin:0 auto;padding:26px 20px 80px}
@@ -460,12 +477,16 @@ select.in{appearance:none;-webkit-appearance:none;padding-right:32px;background-
 .rempty b{display:block;font-family:var(--display);color:var(--ink);margin-bottom:4px}
 
 /* client comment callouts inside the builder line editor */
-.line .ccall{grid-column:1/-1;margin:2px 0 4px 24px;padding:6px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:12.5px;display:flex;gap:10px;align-items:flex-start}
+.line .ccall{flex:1 1 100%;width:100%;margin:2px 0 4px 24px;padding:6px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:12.5px;display:flex;gap:10px;align-items:flex-start}
+.line .ccall .btn{flex:none}
 .line .ccall b{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:1px;font-family:var(--display)}
 .line .ccall .txt{flex:1}
 .line .ccall.done{border-color:var(--ok);background:var(--ok-soft)}
 .line .ccall.done b{color:var(--ok)}
 .line{flex-wrap:wrap}
+.sec .seccall{padding:0 8px 4px 34px}
+.sec .seccall .ccall{margin-left:0}
+.rlist .where em{font-style:normal;color:var(--accent)}
 
 /* in-app confirm dialog */
 .confirm .form p{margin:0;font-size:14px;line-height:1.55}

@@ -6,12 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
-    "deploy": "netlify deploy --prod"
+    "deploy": "netlify deploy --prod",
+    "guide:shots": "node tools/guide-screenshots.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0"
   },
   "devDependencies": {
-    "netlify-cli": "^20.0.0"
+    "netlify-cli": "^20.0.0",
+    "playwright-core": "^1.50.1"
   }
 }

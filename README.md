@@ -30,9 +30,30 @@ with Netlify Blobs as the data store (clients, estimates, client links). No data
 
 ```
 npm install
-cp .env.example .env     # fill in values
+cp .env.example .env     # fill in values (GEMINI_API_KEY, APP_PASSCODE)
+npx netlify link         # once: connect this folder to the kotar-estimates site so Blobs work locally
 npx netlify dev          # http://localhost:8888
 ```
+
+If functions fail locally with "The environment has not been configured to use Netlify Blobs",
+the folder is not linked yet: run `npx netlify link` and pick the kotar-estimates site.
+
+## The how-to guide (public/guide.html) - keep it current
+
+`/guide` is the client-facing manual. **Every change that alters what the user sees must ship
+with a guide update in the same commit:**
+
+1. Edit the relevant section of `public/guide.html` (plain HTML, one `<section>` per feature).
+2. Regenerate the screenshots so they match the live UI:
+   ```
+   node tools/guide-screenshots.mjs                 # against production (uses .env passcode)
+   BASE_URL=http://localhost:8888 node tools/guide-screenshots.mjs   # against netlify dev
+   ```
+   The script seeds a "Sample Client" estimate, walks every screen with the Chrome installed on
+   this computer, writes `public/guide/*.png`, and deletes the sample data. Add a `shot()` call
+   when a new screen appears.
+3. Commit the HTML and PNGs together. The "Guide updated" stamp on the page reads the file's
+   deploy date automatically.
 
 ## Structure
 
